@@ -1,0 +1,46 @@
+
+name: Push
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        required: true
+        type: string
+      olm:
+        required: true
+        type: boolean
+    secrets:
+      registry:
+        required: true
+      registry-username:
+        required: true
+      registry-password:
+        required: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@v4
+      - name: "Set up Go"
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21'
+      - name: "Login to Container registry"
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ secrets.registry }}
+          username: ${{ secrets.registry-username }}
+          password: ${{ secrets.registry-password }}
+      - name: Set versions
+        run: |
+          export INPUT_VERSION="${{ inputs.version }}"
+          export C_VERSION="${INPUT_VERSION#v}"
+
+          echo "CONTAINER_IMAGE_VERSION=${C_VERSION}" >> $GITHUB_ENV
+      - name: "Build Container image"
+        run: |
+          make docker/build
+          make docker/push
