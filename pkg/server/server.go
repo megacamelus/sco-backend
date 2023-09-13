@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	logger = slog.Default()
+	logger = slog.Default().With(slog.String("component", "server"))
 	cl     client.Client
 )
 
