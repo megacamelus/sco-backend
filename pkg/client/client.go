@@ -2,8 +2,8 @@ package client
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
-	"os"
 
 	camelv1 "github.com/apache/camel-k/pkg/apis/camel/v1"
 	camelclient "github.com/apache/camel-k/pkg/client"
@@ -22,8 +22,7 @@ func NewClient() (*Client, error) {
 
 	cl, err := camelclient.NewClient(false)
 	if err != nil {
-		logger.Error("failed to create k8s client for camel k", err)
-		os.Exit(1)
+		return nil, fmt.Errorf("failed to create camel k8s client: %w", err)
 	}
 
 	ip := &camelv1.IntegrationPlatformList{}

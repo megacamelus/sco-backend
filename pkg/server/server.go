@@ -2,11 +2,12 @@ package server
 
 import (
 	"context"
+	"log/slog"
+	"net/http"
+
 	camelv1alpha "github.com/apache/camel-k/pkg/apis/camel/v1alpha1"
 	"github.com/gin-gonic/gin"
 	"github.com/sco1237896/sco-backend/pkg/client"
-	"log/slog"
-	"net/http"
 )
 
 var (
