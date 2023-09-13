@@ -11,7 +11,7 @@ import (
 	controllerlog "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-var logger = slog.Default()
+var logger = slog.Default().With(slog.String("component", "k8s-client"))
 
 type Client struct {
 	camelclient.Client

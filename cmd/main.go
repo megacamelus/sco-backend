@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	logger = slog.Default()
+	logger = slog.Default().With(slog.String("component", "main"))
 )
 
 func main() {
