@@ -79,6 +79,15 @@ vet: ## Run go vet against code.
 	go vet ./...
 
 
+.PHONY: run
+run: serve
+
+
+.PHONY: serve
+serve: ## Run the server
+	go run -ldflags="$(GOLDFLAGS)" cmd/main.go serve
+
+
 .PHONY: test
 test: fmt vet ## Run tests.
 	go test -ldflags="$(GOLDFLAGS)" -v ./pkg/...
@@ -138,13 +147,6 @@ docker/push/kind: docker/build ## Load docker image in kind.
 ##@ Deployment
 
 
-.PHONY: run
-run: serve
-
-
-.PHONY: serve
-serve: ## Run the server
-	go run -ldflags="$(GOLDFLAGS)" cmd/main.go serve
 
 
 ##@ Build Dependencies

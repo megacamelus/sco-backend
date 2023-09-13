@@ -9,8 +9,7 @@ import (
 func NewServeCmd() *cobra.Command {
 
 	options := server.Options{
-		Addr: "localhost",
-		Port: 8080,
+		Addr: ":8080",
 	}
 
 	cmd := cobra.Command{
@@ -26,8 +25,7 @@ func NewServeCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&options.Addr, "server-address", options.Addr, "The address the server binds to.")
-	cmd.Flags().IntVar(&options.Port, "server-port", options.Port, "The port the server binds to.")
+	cmd.Flags().StringVar(&options.Addr, "bind-address", options.Addr, "The address the server binds to.")
 
 	return &cmd
 }

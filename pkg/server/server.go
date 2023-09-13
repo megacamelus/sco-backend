@@ -2,13 +2,11 @@ package server
 
 import (
 	"context"
-	"log/slog"
-	"net/http"
-	"strconv"
-
 	camelv1alpha "github.com/apache/camel-k/pkg/apis/camel/v1alpha1"
 	"github.com/gin-gonic/gin"
 	"github.com/sco1237896/sco-backend/pkg/client"
+	"log/slog"
+	"net/http"
 )
 
 var (
@@ -18,13 +16,12 @@ var (
 
 type Options struct {
 	Addr string
-	Port int
 }
 
 func Start(opts Options, client *client.Client) error {
 	r := setupRouter(client)
 	logger.Info("starting server")
-	err := r.Run(opts.Addr + ":" + strconv.Itoa(opts.Port))
+	err := r.Run(opts.Addr)
 	if err != nil {
 		return err
 	}
