@@ -12,15 +12,14 @@ import (
 
 var (
 	logger = slog.Default().With(slog.String("component", "server"))
-	cl     client.Client
 )
 
 type Options struct {
 	Addr string
 }
 
-func Start(opts Options, client *client.Client) error {
-	r := setupRouter(client)
+func Start(opts Options, cl *client.Client) error {
+	r := setupRouter(cl)
 	logger.Info("starting server")
 	err := r.Run(opts.Addr)
 	if err != nil {
@@ -30,14 +29,15 @@ func Start(opts Options, client *client.Client) error {
 	return nil
 }
 
-func setupRouter(client *client.Client) *gin.Engine {
-	cl = *client
+func setupRouter(cl *client.Client) *gin.Engine {
 	r := gin.Default()
-	r.GET("/pipes", getPipes)
+	r.GET("/pipes", func(c *gin.Context) {
+		getPipes(cl, c)
+	})
 	return r
 }
 
-func getPipes(c *gin.Context) {
+func getPipes(cl *client.Client, c *gin.Context) {
 	list := &camelv1alpha.KameletBindingList{}
 	err := cl.List(context.Background(), list)
 	if err != nil {
