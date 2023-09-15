@@ -7,9 +7,6 @@ on:
       version:
         required: true
         type: string
-      olm:
-        required: true
-        type: boolean
     secrets:
       registry:
         required: true
