@@ -5,7 +5,6 @@ import (
 	"log/slog"
 	"net/http"
 
-	camelv1alpha "github.com/apache/camel-k/pkg/apis/camel/v1alpha1"
 	"github.com/gin-gonic/gin"
 	"github.com/sco1237896/sco-backend/pkg/client"
 )
@@ -18,7 +17,7 @@ type Options struct {
 	Addr string
 }
 
-func Start(opts Options, cl *client.Client) error {
+func Start(opts Options, cl client.ScoClient) error {
 	r := setupRouter(cl)
 	logger.Info("starting server")
 	err := r.Run(opts.Addr)
@@ -29,7 +28,7 @@ func Start(opts Options, cl *client.Client) error {
 	return nil
 }
 
-func setupRouter(cl *client.Client) *gin.Engine {
+func setupRouter(cl client.ScoClient) *gin.Engine {
 	r := gin.Default()
 	r.GET("/pipes", func(c *gin.Context) {
 		getPipes(cl, c)
@@ -37,9 +36,8 @@ func setupRouter(cl *client.Client) *gin.Engine {
 	return r
 }
 
-func getPipes(cl *client.Client, c *gin.Context) {
-	list := &camelv1alpha.KameletBindingList{}
-	err := cl.List(context.Background(), list)
+func getPipes(cl client.ScoClient, c *gin.Context) {
+	list, err := cl.ListPipes(context.Background())
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
