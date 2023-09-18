@@ -4,15 +4,17 @@ import (
 	"context"
 	"net/http"
 	"testing"
-	"time"
+
+	. "github.com/onsi/gomega"
 
 	"knative.dev/eventing/third_party/VENDOR-LICENSE/github.com/hashicorp/go-cleanhttp"
 
 	"github.com/sco1237896/sco-backend/cmd/serve"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestServe(t *testing.T) {
+	g := NewWithT(t)
+
 	cmd := serve.NewServeCmd()
 	cmd.SetArgs([]string{"--bind-address", "localhost:9090"})
 
@@ -28,30 +30,14 @@ func TestServe(t *testing.T) {
 		t.Error(err)
 	}
 
-	assertEventually(t, func() bool {
+	got := func() (int, error) {
 		resp, err := cleanhttp.DefaultClient().Do(req)
 		if err != nil {
-			t.Error(err)
+			return -1, err
 		}
-
 		defer resp.Body.Close()
-		return http.StatusOK == resp.StatusCode
-	})
-}
-
-// wrapper for assert.Eventually.
-func assertEventually(t *testing.T, condition func() bool) {
-	t.Helper()
-
-	waitD, err := time.ParseDuration("2s")
-	if err != nil {
-		t.Error(err)
+		return resp.StatusCode, nil
 	}
 
-	tickD, err := time.ParseDuration("200ms")
-	if err != nil {
-		t.Error(err)
-	}
-
-	assert.Eventually(t, condition, waitD, tickD)
+	g.Eventually(got).Should(Equal(http.StatusOK))
 }

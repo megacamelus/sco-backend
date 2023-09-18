@@ -7,9 +7,11 @@ require (
 	github.com/apache/camel-k/pkg/apis/camel v1.12.1
 	github.com/gin-gonic/gin v1.9.1
 	github.com/go-logr/logr v1.2.5-0.20230905055351-5dda6214b5c8
+	github.com/onsi/gomega v1.27.10
 	github.com/spf13/cobra v1.7.0
 	github.com/stretchr/testify v1.8.3
 	k8s.io/apimachinery v0.28.1
+	knative.dev/eventing v0.35.3
 	sigs.k8s.io/controller-runtime v0.16.1
 )
 
@@ -119,7 +121,6 @@ require (
 	k8s.io/klog/v2 v2.100.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20230717233707-2695361300d9 // indirect
 	k8s.io/utils v0.0.0-20230406110748-d93618cff8a2 // indirect
-	knative.dev/eventing v0.35.3 // indirect
 	knative.dev/networking v0.0.0-20221012062251-58f3e6239b4f // indirect
 	knative.dev/pkg v0.0.0-20221123011842-b78020c16606 // indirect
 	knative.dev/serving v0.35.3 // indirect

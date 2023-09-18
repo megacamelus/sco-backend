@@ -89,7 +89,7 @@ serve: ## Run the server
 
 
 .PHONY: test
-test: fmt vet check ## Run tests.
+test: deps fmt vet ## Run tests.
 	go test -ldflags="$(GOLDFLAGS)" -v ./pkg/...
 	go test -ldflags="$(GOLDFLAGS)" -v ./e2e-test/...
 
