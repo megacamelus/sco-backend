@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"knative.dev/eventing/third_party/VENDOR-LICENSE/github.com/hashicorp/go-cleanhttp"
+
 	"github.com/sco1237896/sco-backend/cmd/serve"
 	"github.com/stretchr/testify/assert"
 )
@@ -27,7 +29,7 @@ func TestServe(t *testing.T) {
 	}
 
 	assertEventually(t, func() bool {
-		resp, err := http.DefaultClient.Do(req)
+		resp, err := cleanhttp.DefaultClient().Do(req)
 		if err != nil {
 			t.Error(err)
 		}
