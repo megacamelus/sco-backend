@@ -14,17 +14,17 @@ import (
 
 var logger = slog.Default().With(slog.String("component", "k8s-client"))
 
-type ScoClient interface {
+type Interface interface {
 	ListPipes(c context.Context) (*camelv1alpha.KameletBindingList, error)
 }
 
-type defaultScoClient struct {
+type defaultClient struct {
 	camelCl camelclient.Client
 }
 
-var _ ScoClient = &defaultScoClient{}
+var _ Interface = &defaultClient{}
 
-func NewClient(c context.Context) (ScoClient, error) {
+func New(c context.Context) (Interface, error) {
 	controllerlog.SetLogger(slogr.NewLogr(logger.Handler()))
 
 	cl, err := camelclient.NewClient(false)
@@ -41,10 +41,10 @@ func NewClient(c context.Context) (ScoClient, error) {
 		logger.Warn("Failed to find IntegrationPlatform. Is Camel K running?")
 	}
 
-	return &defaultScoClient{cl}, nil
+	return &defaultClient{cl}, nil
 }
 
-func (cl *defaultScoClient) ListPipes(c context.Context) (*camelv1alpha.KameletBindingList, error) {
+func (cl *defaultClient) ListPipes(c context.Context) (*camelv1alpha.KameletBindingList, error) {
 	list := &camelv1alpha.KameletBindingList{}
 	err := cl.camelCl.List(c, list)
 	if err != nil {

@@ -17,7 +17,7 @@ type Options struct {
 	Addr string
 }
 
-func Start(opts Options, cl client.ScoClient) error {
+func Start(opts Options, cl client.Interface) error {
 	r := setupRouter(cl)
 	logger.Info("starting server")
 	err := r.Run(opts.Addr)
@@ -28,7 +28,7 @@ func Start(opts Options, cl client.ScoClient) error {
 	return nil
 }
 
-func setupRouter(cl client.ScoClient) *gin.Engine {
+func setupRouter(cl client.Interface) *gin.Engine {
 	r := gin.Default()
 	r.GET("/pipes", func(c *gin.Context) {
 		getPipes(cl, c)
@@ -36,7 +36,7 @@ func setupRouter(cl client.ScoClient) *gin.Engine {
 	return r
 }
 
-func getPipes(cl client.ScoClient, c *gin.Context) {
+func getPipes(cl client.Interface, c *gin.Context) {
 	list, err := cl.ListPipes(context.Background())
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

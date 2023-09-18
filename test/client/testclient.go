@@ -11,7 +11,7 @@ import (
 type TestClient struct {
 }
 
-var _ client.ScoClient = &TestClient{}
+var _ client.Interface = &TestClient{}
 
 func (cl TestClient) ListPipes(_ context.Context) (*camelv1alpha.KameletBindingList, error) {
 	list := &camelv1alpha.KameletBindingList{

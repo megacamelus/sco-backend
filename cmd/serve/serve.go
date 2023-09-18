@@ -1,8 +1,6 @@
 package serve
 
 import (
-	"context"
-
 	"github.com/sco1237896/sco-backend/pkg/client"
 	"github.com/sco1237896/sco-backend/pkg/server"
 	"github.com/spf13/cobra"
@@ -18,7 +16,7 @@ func NewServeCmd() *cobra.Command {
 		Use:   "serve",
 		Short: "serve",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cl, err := client.NewClient(context.Background())
+			cl, err := client.New(cmd.Context())
 			if err != nil {
 				return err
 			}
