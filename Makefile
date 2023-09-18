@@ -1,179 +1,486 @@
+# Check to see if we can use ash, in Alpine images, or default to BASH.
+SHELL_PATH = /bin/ash
+SHELL = $(if $(wildcard $(SHELL_PATH)),/bin/ash,/bin/bash)
 
-PROJECT_NAME ?= sco-backend
-PROJECT_VERSION ?= 0.0.1
+# Deploy First Mentality
 
-CONTAINER_REGISTRY ?= quay.io
-CONTAINER_REGISTRY_ORG ?= sco1237896
-CONTAINER_IMAGE_VERSION ?= $(PROJECT_VERSION)
-CONTAINER_IMAGE ?= $(CONTAINER_REGISTRY)/$(CONTAINER_REGISTRY_ORG)/$(PROJECT_NAME):$(CONTAINER_IMAGE_VERSION)
+# ==============================================================================
+# Brew Installation
+#
+#	Having brew installed will simplify the process of installing all the tooling.
+#
+#	Run this command to install brew on your machine. This works for Linux, Max and Windows.
+#	The script explains what it will do and then pauses before it does it.
+#	$ /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+#
+#	WINDOWS MACHINES
+#	These are extra things you will most likely need to do after installing brew
+#
+# 	Run these three commands in your terminal to add Homebrew to your PATH:
+# 	Replace <name> with your username.
+#	$ echo '# Set PATH, MANPATH, etc., for Homebrew.' >> /home/<name>/.profile
+#	$ echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> /home/<name>/.profile
+#	$ eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+#
+# 	Install Homebrew's dependencies:
+#	$ sudo apt-get install build-essential
+#
+# 	Install GCC:
+#	$ brew install gcc
 
-LINT_GOGC ?= 10
-LINT_DEADLINE ?= 10m
+# ==============================================================================
+# Windows Users ONLY - Install Telepresence
+#
+#	Unfortunately you can't use brew to install telepresence because you will
+#	receive a bad binary. Please follow these instruction.
+#
+#	$ sudo curl -fL https://app.getambassador.io/download/tel2/linux/amd64/latest/telepresence -o /usr/local/bin/telepresence
+#	$ sudo chmod a+x /usr/local/bin/telepresence
+#
+# 	Restart your wsl environment.
 
-MKFILE_PATH := $(abspath $(lastword $(MAKEFILE_LIST)))
-PROJECT_PATH := $(patsubst %/,%,$(dir $(MKFILE_PATH)))
-LOCALBIN := $(PROJECT_PATH)/bin
+# ==============================================================================
+# Linux Users ONLY - Install Telepresence
+#
+#   https://www.telepresence.io/docs/latest/quick-start/?os=gnu-linux
 
-## Tool Versions
-KIND_VERSION ?= v0.20.0
-LINTER_VERSION ?= v1.52.2
+# ==============================================================================
+# M1 Mac Users ONLY - Uninstall Telepresence If Installed Intel Version
+#
+#   $ sudo rm -rf /Library/Developer/CommandLineTools
+#   $ sudo xcode-select --install
+#   Then it installed with brew (arm64)
 
-## Tool Binaries
-LINTER ?= $(LOCALBIN)/golangci-lint
-GOIMPORT ?= $(LOCALBIN)/goimports
-KIND ?= $(LOCALBIN)/kind
+# ==============================================================================
+# Install Tooling and Dependencies
+#
+#	If you are running a mac machine with brew, run these commands:
+#	$ make dev-brew  or  make dev-brew-arm64
+#	$ make dev-docker
+#	$ make dev-gotooling
+#
+#	If you are running a linux machine with brew, run these commands:
+#	$ make dev-brew-common
+#	$ make dev-docker
+#	$ make dev-gotooling
+#   Follow instructions above for Telepresence.
+#
+#	If you are a windows user with brew, run these commands:
+#	$ make dev-brew-common
+#	$ make dev-docker
+#	$ make dev-gotooling
+#   Follow instructions above for Telepresence.
 
-# Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
-ifeq (,$(shell go env GOBIN))
-GOBIN=$(shell go env GOPATH)/bin
-else
-GOBIN=$(shell go env GOBIN)
-endif
+# ==============================================================================
+# Running Test
+#
+#	Running the tests is a good way to verify you have installed most of the
+#	dependencies properly.
+#
+#	$ make test
+#
+#	To run the tests, linter, vet, and the vuln check.
+#
+#	# make test-all
 
-# CONTAINER_TOOL defines the container tool to be used for building images.
-# Be aware that the target commands are only tested with Docker which is
-# scaffolded by default. However, you might want to replace it to use other
-# tools. (i.e. podman)
-CONTAINER_TOOL ?= docker
+# ==============================================================================
+# Starting The Project
+#
+#	If you want to use telepresence (recommended):
+#	$ make dev-up
+#	$ make dev-update-apply
+#
+#	If telepresence is not working for you:
+#	$ make dev-up-local
+#	$ make dev-update-apply
+#
+#	Note: If you attempted to run with telepresence and it didn't work, you may
+#		  want to restart the cluser.
+#		  $ make dev-down-local
+#
+#	Note: When running without telepresence, if you see a command where there is
+#         a `-local` option, you will need to use that command.
 
-# Setting SHELL to bash allows bash commands to be executed by recipes.
-# Options are set to exit when a recipe line exits non-zero or a piped command fails.
-SHELL = /usr/bin/env bash -o pipefail
-.SHELLFLAGS = -ec
+# ==============================================================================
+# CLASS NOTES
+#
+# Kind
+# 	For full Kind v0.20 release notes: https://github.com/kubernetes-sigs/kind/releases/tag/v0.20.0
+#
+# RSA Keys
+# 	To generate a private/public key PEM file.
+# 	$ openssl genpkey -algorithm RSA -out private.pem -pkeyopt rsa_keygen_bits:2048
+# 	$ openssl rsa -pubout -in private.pem -out public.pem
+# 	$ ./sales-admin genkey
+#
+# Testing Coverage
+# 	$ go test -coverprofile p.out
+# 	$ go tool cover -html p.out
+#
+# Hashicorp Vault
+# 	READ THIS: https://developer.hashicorp.com/vault/docs/concepts/tokens
+# 	$ export VAULT_TOKEN=mytoken
+# 	$ export VAULT_ADDR='http://vault-service.sales-system.svc.cluster.local:8200'
+# 	$ vault secrets list
+# 	$ vault kv get secret/sales
+# 	$ vault kv put secret/sales key="some data"
+# 	$ kubectl logs --namespace=sales-system -l app=sales -c init-vault-server
+# 	$ curl -H "X-Vault-Token: mytoken" -X GET http://vault-service.sales-system.svc.cluster.local:8200/v1/secret/data/54bb2165-71e1-41a6-af3e-7da4a0e1e2c1
+# 	$ curl -H "X-Vault-Token: mytoken" -H "Content-Type: application/json" -X POST -d '{"data":{"pk":"PEM"}}' http://vault-service.sales-system.svc.cluster.local:8200/v1/secret/data/54bb2165-71e1-41a6-af3e-7da4a0e1e2c1
+#
+# Module Call Examples
+# 	$ curl https://proxy.golang.org/github.com/ardanlabs/conf/@v/list
+# 	$ curl https://proxy.golang.org/github.com/ardanlabs/conf/v3/@v/list
+# 	$ curl https://proxy.golang.org/github.com/ardanlabs/conf/v3/@v/v3.1.1.info
+# 	$ curl https://proxy.golang.org/github.com/ardanlabs/conf/v3/@v/v3.1.1.mod
+# 	$ curl https://proxy.golang.org/github.com/ardanlabs/conf/v3/@v/v3.1.1.zip
+# 	$ curl https://sum.golang.org/lookup/github.com/ardanlabs/conf/v3@v3.1.1
+#
+# OPA Playground
+# 	https://play.openpolicyagent.org/
+# 	https://academy.styra.com/
+# 	https://www.openpolicyagent.org/docs/latest/policy-reference/
 
-.PHONY: all
-all: build
+# ==============================================================================
+# Define dependencies
 
-ifndef ignore-not-found
-  ignore-not-found = false
-endif
+GOLANG          := golang:1.21
+ALPINE          := alpine:3.18
+KIND            := kindest/node:v1.27.3
+POSTGRES        := postgres:15.4
+VAULT           := hashicorp/vault:1.14
+GRAFANA         := grafana/grafana:10.1.0
+PROMETHEUS      := prom/prometheus:v2.47.0
+TEMPO           := grafana/tempo:2.2.0
+LOKI            := grafana/loki:2.9.0
+PROMTAIL        := grafana/promtail:2.9.0
 
-##@ General
+KIND_CLUSTER    := ardan-starter-cluster
+NAMESPACE       := sales-system
+APP             := sales
+BASE_IMAGE_NAME := ardanlabs/service
+SERVICE_NAME    := sales-api
+VERSION         := 0.0.1
+SERVICE_IMAGE   := $(BASE_IMAGE_NAME)/$(SERVICE_NAME):$(VERSION)
+METRICS_IMAGE   := $(BASE_IMAGE_NAME)/$(SERVICE_NAME)-metrics:$(VERSION)
 
-# The help target prints out all targets with their descriptions organized
-# beneath their categories. The categories are represented by '##@' and the
-# target descriptions by '##'. The awk commands is responsible for reading the
-# entire set of makefiles included in this invocation, looking for lines of the
-# file as xyz: ## something, and then pretty-format the target and help. Then,
-# if there's a line with ##@ something, that gets pretty-printed as a category.
-# More info on the usage of ANSI control characters for terminal formatting:
-# https://en.wikipedia.org/wiki/ANSI_escape_code#SGR_parameters
-# More info on the awk command:
-# http://linuxcommand.org/lc3_adv_awk.php
+# VERSION       := "0.0.1-$(shell git rev-parse --short HEAD)"
 
-.PHONY: help
-help: ## Display this help.
-	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-\/]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
+# ==============================================================================
+# Install dependencies
 
+dev-gotooling:
+	go install github.com/divan/expvarmon@latest
+	go install github.com/rakyll/hey@latest
+	go install honnef.co/go/tools/cmd/staticcheck@latest
+	go install golang.org/x/vuln/cmd/govulncheck@latest
+	go install golang.org/x/tools/cmd/goimports@latest
 
-##@ Development
+dev-brew:
+	brew update
+	brew tap hashicorp/tap
+	brew list kind || brew install kind
+	brew list kubectl || brew install kubectl
+	brew list kustomize || brew install kustomize
+	brew list pgcli || brew install pgcli
+	brew list vault || brew install vault
 
-.PHONY: fmt
-fmt: goimport ## Run go fmt, gomiport against code.
-	$(GOIMPORT) -l -w .
-	go fmt ./...
+dev-docker:
+	docker pull $(GOLANG)
+	docker pull $(ALPINE)
+	docker pull $(KIND)
+	docker pull $(POSTGRES)
+	docker pull $(VAULT)
+	docker pull $(GRAFANA)
+	docker pull $(PROMETHEUS)
+	docker pull $(TEMPO)
+	docker pull $(LOKI)
+	docker pull $(PROMTAIL)
 
+# ==============================================================================
+# Building containers
 
-.PHONY: vet
-vet: ## Run go vet against code.
-	go vet ./...
+all: service metrics
 
+service:
+	docker build \
+		-f zarf/docker/dockerfile.service \
+		-t $(SERVICE_IMAGE) \
+		--build-arg BUILD_REF=$(VERSION) \
+		--build-arg BUILD_DATE=`date -u +"%Y-%m-%dT%H:%M:%SZ"` \
+		.
 
-.PHONY: run
-run: serve
+metrics:
+	docker build \
+		-f zarf/docker/dockerfile.metrics \
+		-t $(METRICS_IMAGE) \
+		--build-arg BUILD_REF=$(VERSION) \
+		--build-arg BUILD_DATE=`date -u +"%Y-%m-%dT%H:%M:%SZ"` \
+		.
 
+# ==============================================================================
+# Running from within k8s/kind
 
-.PHONY: serve
-serve: ## Run the server
-	go run -ldflags="$(GOLDFLAGS)" cmd/main.go serve
+dev-up:
+	kind create cluster \
+		--image $(KIND) \
+		--name $(KIND_CLUSTER) \
+		--config zarf/k8s/dev/kind-config.yaml
 
+	kubectl wait --timeout=120s --namespace=local-path-storage --for=condition=Available deployment/local-path-provisioner
 
-.PHONY: test
-test: fmt vet ## Run tests.
-	go test -ldflags="$(GOLDFLAGS)" -v ./pkg/...
+	kind load docker-image $(POSTGRES) --name $(KIND_CLUSTER)
+	kind load docker-image $(VAULT) --name $(KIND_CLUSTER)
+	kind load docker-image $(GRAFANA) --name $(KIND_CLUSTER)
+	kind load docker-image $(PROMETHEUS) --name $(KIND_CLUSTER)
+	kind load docker-image $(TEMPO) --name $(KIND_CLUSTER)
+	kind load docker-image $(LOKI) --name $(KIND_CLUSTER)
+	kind load docker-image $(PROMTAIL) --name $(KIND_CLUSTER)
 
+dev-down:
+	kind delete cluster --name $(KIND_CLUSTER)
 
-##@ Build
+# ------------------------------------------------------------------------------
 
-.PHONY: build
-build: fmt vet ## Build manager binary.
-	go build -ldflags="$(GOLDFLAGS)" -o bin/sco cmd/main.go
+dev-load:
+	cd zarf/k8s/dev/sales; kustomize edit set image service-image=$(SERVICE_IMAGE)
+	kind load docker-image $(SERVICE_IMAGE) --name $(KIND_CLUSTER)
 
+	cd zarf/k8s/dev/sales; kustomize edit set image metrics-image=$(METRICS_IMAGE)
+	kind load docker-image $(METRICS_IMAGE) --name $(KIND_CLUSTER)
 
-.PHONY: deps
-deps:  ## Tidy up deps.
+dev-apply:
+	kustomize build zarf/k8s/dev/vault | kubectl apply -f -
+
+	kustomize build zarf/k8s/dev/database | kubectl apply -f -
+	kubectl rollout status --namespace=$(NAMESPACE) --watch --timeout=120s sts/database
+
+	kustomize build zarf/k8s/dev/grafana | kubectl apply -f -
+	kubectl wait pods --namespace=$(NAMESPACE) --selector app=grafana --timeout=120s --for=condition=Ready
+
+	kustomize build zarf/k8s/dev/prometheus | kubectl apply -f -
+	kubectl wait pods --namespace=$(NAMESPACE) --selector app=prometheus --timeout=120s --for=condition=Ready
+
+	kustomize build zarf/k8s/dev/tempo | kubectl apply -f -
+	kubectl wait pods --namespace=$(NAMESPACE) --selector app=tempo --timeout=120s --for=condition=Ready
+
+	kustomize build zarf/k8s/dev/loki | kubectl apply -f -
+	kubectl wait pods --namespace=$(NAMESPACE) --selector app=loki --timeout=120s --for=condition=Ready
+
+	kustomize build zarf/k8s/dev/promtail | kubectl apply -f -
+	kubectl wait pods --namespace=$(NAMESPACE) --selector app=promtail --timeout=120s --for=condition=Ready
+
+	kustomize build zarf/k8s/dev/sales | kubectl apply -f -
+	kubectl wait pods --namespace=$(NAMESPACE) --selector app=$(APP) --timeout=120s --for=condition=Ready
+
+dev-restart:
+	kubectl rollout restart deployment $(APP) --namespace=$(NAMESPACE)
+
+dev-update: all dev-load dev-restart
+
+dev-update-apply: all dev-load dev-apply
+
+# ------------------------------------------------------------------------------
+
+dev-logs:
+	kubectl logs --namespace=$(NAMESPACE) -l app=$(APP) --all-containers=true -f --tail=100 --max-log-requests=6 | go run app/tooling/logfmt/main.go -service=$(SERVICE_NAME)
+
+dev-logs-init:
+	kubectl logs --namespace=$(NAMESPACE) -l app=$(APP) -f --tail=100 -c init-vault-system
+	kubectl logs --namespace=$(NAMESPACE) -l app=$(APP) -f --tail=100 -c init-vault-loadkeys
+	kubectl logs --namespace=$(NAMESPACE) -l app=$(APP) -f --tail=100 -c init-migrate
+	kubectl logs --namespace=$(NAMESPACE) -l app=$(APP) -f --tail=100 -c init-seed
+
+dev-status:
+	kubectl get nodes -o wide
+	kubectl get svc -o wide
+	kubectl get pods -o wide --watch --all-namespaces
+
+dev-describe:
+	kubectl describe nodes
+	kubectl describe svc
+
+dev-describe-deployment:
+	kubectl describe deployment --namespace=$(NAMESPACE) $(APP)
+
+dev-describe-sales:
+	kubectl describe pod --namespace=$(NAMESPACE) -l app=$(APP)
+
+dev-describe-telepresence:
+	kubectl describe pod --namespace=ambassador -l app=traffic-manager
+
+# ------------------------------------------------------------------------------
+
+dev-logs-vault:
+	kubectl logs --namespace=$(NAMESPACE) -l app=vault --all-containers=true -f --tail=100
+
+dev-logs-db:
+	kubectl logs --namespace=$(NAMESPACE) -l app=database --all-containers=true -f --tail=100
+
+dev-logs-grafana:
+	kubectl logs --namespace=$(NAMESPACE) -l app=grafana --all-containers=true -f --tail=100
+
+dev-logs-tempo:
+	kubectl logs --namespace=$(NAMESPACE) -l app=tempo --all-containers=true -f --tail=100
+
+dev-logs-loki:
+	kubectl logs --namespace=$(NAMESPACE) -l app=loki --all-containers=true -f --tail=100
+
+dev-logs-promtail:
+	kubectl logs --namespace=$(NAMESPACE) -l app=promtail --all-containers=true -f --tail=100
+
+# ------------------------------------------------------------------------------
+
+dev-services-delete:
+	kustomize build zarf/k8s/dev/sales | kubectl delete -f -
+	kustomize build zarf/k8s/dev/grafana | kubectl delete -f -
+	kustomize build zarf/k8s/dev/tempo | kubectl delete -f -
+	kustomize build zarf/k8s/dev/loki | kubectl delete -f -
+	kustomize build zarf/k8s/dev/promtail | kubectl delete -f -
+	kustomize build zarf/k8s/dev/database | kubectl delete -f -
+
+dev-describe-replicaset:
+	kubectl get rs
+	kubectl describe rs --namespace=$(NAMESPACE) -l app=$(APP)
+
+dev-events:
+	kubectl get ev --sort-by metadata.creationTimestamp
+
+dev-events-warn:
+	kubectl get ev --field-selector type=Warning --sort-by metadata.creationTimestamp
+
+dev-shell:
+	kubectl exec --namespace=$(NAMESPACE) -it $(shell kubectl get pods --namespace=$(NAMESPACE) | grep sales | cut -c1-26) --container sales-api -- /bin/sh
+
+dev-database-restart:
+	kubectl rollout restart statefulset database --namespace=$(NAMESPACE)
+
+# ==============================================================================
+# Administration
+
+migrate:
+	go run app/tooling/sales-admin/main.go migrate
+
+seed: migrate
+	go run app/tooling/sales-admin/main.go seed
+
+vault:
+	go run app/tooling/sales-admin/main.go vault
+
+pgcli:
+	pgcli postgresql://postgres:postgres@localhost
+
+liveness:
+	curl -il http://localhost:3000/v1/liveness
+
+readiness:
+	curl -il http://localhost:3000/v1/readiness
+
+token-gen:
+	go run app/tooling/sales-admin/main.go gentoken 5cf37266-3473-4006-984f-9325122678b7 54bb2165-71e1-41a6-af3e-7da4a0e1e2c1
+
+# ==============================================================================
+# Metrics and Tracing
+
+metrics-view-sc:
+	expvarmon -ports="localhost:4000" -vars="build,requests,goroutines,errors,panics,mem:memstats.Alloc"
+
+metrics-view:
+	expvarmon -ports="localhost:3001" -endpoint="/metrics" -vars="build,requests,goroutines,errors,panics,mem:memstats.Alloc"
+
+grafana:
+	open -a "Google Chrome" http://localhost:3100/
+
+# ==============================================================================
+# Running tests within the local computer
+
+test-race:
+	CGO_ENABLED=1 go test -race -count=1 ./...
+
+test-only:
+	CGO_ENABLED=0 go test -count=1 ./...
+
+lint:
+	CGO_ENABLED=0 go vet ./...
+	staticcheck -checks=all ./...
+
+vuln-check:
+	govulncheck ./...
+
+test: test-only lint vuln-check
+
+test-race: test-race lint vuln-check
+
+# make docs ARGS="-out json"
+# make docs ARGS="-out html"
+docs:
+	go run app/tooling/docs/main.go --browser $(ARGS)
+
+docs-debug:
+	go run app/tooling/docs/main.go $(ARGS)
+
+# ==============================================================================
+# Hitting endpoints
+
+token:
+	curl -il --user "admin@example.com:gophers" http://localhost:3000/v1/users/token/54bb2165-71e1-41a6-af3e-7da4a0e1e2c1
+
+# export TOKEN="COPY TOKEN STRING FROM LAST CALL"
+
+users:
+	curl -il -H "Authorization: Bearer ${TOKEN}" http://localhost:3000/v1/users?page=1&rows=2
+
+load:
+	hey -m GET -c 100 -n 10000 -H "Authorization: Bearer ${TOKEN}" "http://localhost:3000/v1/users?page=1&rows=2"
+
+otel-test:
+	curl -il -H "Traceparent: 00-918dd5ecf264712262b68cf2ef8b5239-896d90f23f69f006-01" --user "admin@example.com:gophers" http://localhost:3000/v1/users/token/54bb2165-71e1-41a6-af3e-7da4a0e1e2c1
+
+# ==============================================================================
+# Modules support
+
+deps-reset:
+	git checkout -- go.mod
 	go mod tidy
+	go mod vendor
 
+tidy:
+	go mod tidy
+	go mod vendor
 
-.PHONY: check
-check: check/lint
+deps-list:
+	go list -m -u -mod=readonly all
 
+deps-upgrade:
+	go get -u -v ./...
+	go mod tidy
+	go mod vendor
 
-.PHONY: check/lint
-check/lint: golangci-lint
-	@$(LINTER) run \
-		--config .golangci.yml \
-		--out-format tab \
-		--skip-dirs etc \
-		--deadline $(LINT_DEADLINE) \
-		--verbose
+deps-cleancache:
+	go clean -modcache
 
+list:
+	go list -mod=mod all
 
-.PHONY: check/lint/fix
-check/lint/fix: golangci-lint
-	@$(LINTER) run \
-		--config .golangci.yml \
-		--out-format tab \
-		--skip-dirs etc \
-		--deadline $(LINT_DEADLINE) \
-		--fix
+# ==============================================================================
+# Admin Frontend
 
+ADMIN_FRONTEND_PREFIX := ./app/frontends/admin
 
-.PHONY: docker/build
-docker/build: test ## Build docker image with the manager.
-	$(CONTAINER_TOOL) build -t $(CONTAINER_IMAGE) .
+write-token-to-env:
+	echo "VITE_SERVICE_API=http://localhost:3000/v1" > ${ADMIN_FRONTEND_PREFIX}/.env
+	make token | grep -o '"ey.*"' | awk '{print "VITE_SERVICE_TOKEN="$$1}' >> ${ADMIN_FRONTEND_PREFIX}/.env
 
+admin-gui-install:
+	pnpm -C ${ADMIN_FRONTEND_PREFIX} install 
 
-.PHONY: docker/push
-docker/push: ## Push docker image with the manager.
-	$(CONTAINER_TOOL) push $(CONTAINER_IMAGE)
+admin-gui-dev: admin-gui-install
+	pnpm -C ${ADMIN_FRONTEND_PREFIX} run dev 
 
+admin-gui-build: admin-gui-install
+	pnpm -C ${ADMIN_FRONTEND_PREFIX} run build 
 
-.PHONY: docker/push/kind
-docker/push/kind: docker/build ## Load docker image in kind.
-	kind load docker-image $(CONTAINER_IMAGE)
+admin-gui-start-build: admin-gui-build
+	pnpm -C ${ADMIN_FRONTEND_PREFIX} run preview 
 
-
-##@ Deployment
-
-
-
-
-##@ Build Dependencies
-
-## Location to install dependencies to
-$(LOCALBIN):
-	mkdir -p $(LOCALBIN)
-
-
-## Tool Binaries
-.PHONY: golangci-lint
-golangci-lint: $(LINTER)
-$(LINTER): $(LOCALBIN)
-	@test -s $(LOCALBIN)/golangci-lint || \
-	GOBIN=$(LOCALBIN) go install github.com/golangci/golangci-lint/cmd/golangci-lint@$(LINTER_VERSION)
-
-
-.PHONY: goimport
-goimport: $(GOIMPORT)
-$(GOIMPORT): $(LOCALBIN)
-	@test -s $(LOCALBIN)/goimport || \
-	GOBIN=$(LOCALBIN) go install golang.org/x/tools/cmd/goimports@latest
-
-
-.PHONY: kind
-kind: $(KIND)
-$(KIND): $(LOCALBIN)
-	@test -s $(LOCALBIN)/kind || \
-	GOBIN=$(LOCALBIN) go install sigs.k8s.io/kind@$(KIND_VERSION)
-
+admin-gui-run: write-token-to-env admin-gui-start-build
