@@ -12,7 +12,7 @@ require (
 	github.com/stretchr/testify v1.8.3
 	k8s.io/apimachinery v0.28.1
 	knative.dev/eventing v0.35.3
-	sigs.k8s.io/controller-runtime v0.16.1
+	sigs.k8s.io/controller-runtime v0.16.2
 )
 
 require (
