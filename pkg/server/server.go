@@ -9,17 +9,20 @@ import (
 	"github.com/sco1237896/sco-backend/pkg/client"
 )
 
-var (
-	logger = slog.Default().With(slog.String("component", "server"))
-)
+func init() {
+	gin.SetMode(gin.ReleaseMode)
+}
 
 type Options struct {
 	Addr string
 }
 
 func Start(opts Options, cl client.Interface) error {
+	l := logger.With(slog.String("component", "server"))
 	r := setupRouter(cl)
-	logger.Info("starting server")
+
+	l.Info("starting server")
+
 	err := r.Run(opts.Addr)
 	if err != nil {
 		return err
@@ -30,9 +33,11 @@ func Start(opts Options, cl client.Interface) error {
 
 func setupRouter(cl client.Interface) *gin.Engine {
 	r := gin.Default()
+
 	r.GET("/pipes", func(c *gin.Context) {
 		getPipes(cl, c)
 	})
+
 	return r
 }
 
