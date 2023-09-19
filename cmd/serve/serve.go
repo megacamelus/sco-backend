@@ -1,16 +1,17 @@
 package serve
 
 import (
+	"log/slog"
+	"os"
+	"os/signal"
+	"syscall"
+
 	"github.com/gin-gonic/gin"
 	"github.com/sco1237896/sco-backend/pkg/client"
 	"github.com/sco1237896/sco-backend/pkg/health"
 	"github.com/sco1237896/sco-backend/pkg/logger"
 	"github.com/sco1237896/sco-backend/pkg/server"
 	"github.com/spf13/cobra"
-	"log/slog"
-	"os"
-	"os/signal"
-	"syscall"
 )
 
 func init() {
