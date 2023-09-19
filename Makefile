@@ -17,11 +17,13 @@ LOCALBIN := $(PROJECT_PATH)/bin
 ## Tool Versions
 KIND_VERSION ?= v0.20.0
 LINTER_VERSION ?= v1.52.2
+GOVULNCHECK_VERSION ?= latest
 
 ## Tool Binaries
 LINTER ?= $(LOCALBIN)/golangci-lint
 GOIMPORT ?= $(LOCALBIN)/goimports
 KIND ?= $(LOCALBIN)/kind
+GOVULNCHECK ?= $(LOCALBIN)/govulncheck
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -120,7 +122,7 @@ deps:  ## Tidy up deps.
 
 
 .PHONY: check
-check: check/lint
+check: check/lint check/vuln
 
 
 .PHONY: check/lint
@@ -142,6 +144,10 @@ check/lint/fix: golangci-lint
 		--deadline $(LINT_DEADLINE) \
 		--fix
 
+.PHONY: check/vuln
+check/vuln: govulncheck
+	@echo "run govulncheck"
+	@$(GOVULNCHECK) ./...
 
 .PHONY: docker/build
 docker/build:
@@ -186,3 +192,8 @@ $(KIND): $(LOCALBIN)
 	@test -s $(LOCALBIN)/kind || \
 	GOBIN=$(LOCALBIN) go install sigs.k8s.io/kind@$(KIND_VERSION)
 
+.PHONY: govulncheck
+govulncheck: $(GOVULNCHECK)
+$(GOVULNCHECK): $(LOCALBIN)
+	@test -s $(GOVULNCHECK) || \
+	GOBIN=$(LOCALBIN) go install golang.org/x/vuln/cmd/govulncheck@$(GOVULNCHECK_VERSION)
