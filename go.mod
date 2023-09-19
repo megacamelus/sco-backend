@@ -9,7 +9,7 @@ require (
 	github.com/go-logr/logr v1.2.5-0.20230905055351-5dda6214b5c8
 	github.com/onsi/gomega v1.27.10
 	github.com/spf13/cobra v1.7.0
-	github.com/stretchr/testify v1.8.3
+	github.com/stretchr/testify v1.8.4
 	k8s.io/apimachinery v0.28.1
 	knative.dev/eventing v0.35.3
 	sigs.k8s.io/controller-runtime v0.16.1
