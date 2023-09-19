@@ -89,9 +89,22 @@ serve: ## Run the server
 
 
 .PHONY: test
-test: deps fmt vet ## Run tests.
+test: test/ut test/e2e
+
+
+.PHONY: test/ut
+test/ut: fmt vet
 	go test -ldflags="$(GOLDFLAGS)" -v ./pkg/...
+
+
+.PHONY: test/e2e
+test/e2e: fmt vet
 	go test -ldflags="$(GOLDFLAGS)" -v ./e2e-test/...
+
+
+.PHONY: test/apply-crds
+test/apply-crds:
+	kubectl apply -k ./config/manifests/e2e/ --server-side --force-conflicts
 
 
 ##@ Build
