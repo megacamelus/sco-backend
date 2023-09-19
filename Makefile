@@ -89,11 +89,7 @@ serve: ## Run the server
 
 
 .PHONY: test
-test: test/ut test/e2e
-
-
-.PHONY: test/ut
-test/ut: fmt vet
+test: fmt vet
 	go test -ldflags="$(GOLDFLAGS)" -v ./pkg/...
 
 
@@ -105,6 +101,10 @@ test/e2e: fmt vet
 .PHONY: test/apply-crds
 test/apply-crds:
 	kubectl apply -k ./config/manifests/e2e/ --server-side --force-conflicts
+
+
+.PHONY: check/all ## single target for checking everything
+check/all: deps fmt vet check build test test/e2e docker/build
 
 
 ##@ Build
@@ -144,23 +144,18 @@ check/lint/fix: golangci-lint
 
 
 .PHONY: docker/build
-docker/build: test ## Build docker image with the manager.
+docker/build:
 	$(CONTAINER_TOOL) build -t $(CONTAINER_IMAGE) .
 
 
 .PHONY: docker/push
-docker/push: ## Push docker image with the manager.
+docker/push:
 	$(CONTAINER_TOOL) push $(CONTAINER_IMAGE)
 
 
 .PHONY: docker/push/kind
-docker/push/kind: docker/build ## Load docker image in kind.
+docker/push/kind: docker/build
 	kind load docker-image $(CONTAINER_IMAGE)
-
-
-##@ Deployment
-
-
 
 
 ##@ Build Dependencies
