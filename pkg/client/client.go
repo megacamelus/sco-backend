@@ -8,6 +8,7 @@ import (
 	camelv1 "github.com/apache/camel-k/pkg/apis/camel/v1"
 	camelv1alpha "github.com/apache/camel-k/pkg/apis/camel/v1alpha1"
 	camelclient "github.com/apache/camel-k/pkg/client"
+	"github.com/sco1237896/sco-backend/pkg/logger"
 )
 
 type Interface interface {

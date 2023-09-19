@@ -7,11 +7,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/sco1237896/sco-backend/pkg/client"
+	"github.com/sco1237896/sco-backend/pkg/logger"
 )
-
-func init() {
-	gin.SetMode(gin.ReleaseMode)
-}
 
 type Options struct {
 	Addr string
