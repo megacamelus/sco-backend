@@ -3,7 +3,6 @@ package health
 import (
 	"context"
 	"errors"
-	"log"
 	"log/slog"
 	"net/http"
 	"path"
@@ -15,11 +14,27 @@ import (
 )
 
 const (
-	DefaultPrefix   = ""
-	DefaultAddress  = ":8081"
-	DefaultPort     = 8081
-	DefaultPortName = "health"
+	DefaultPrefix  = ""
+	DefaultAddress = ":8081"
 )
+
+type Options struct {
+	Health        bool
+	HealthAddress string
+	HealthPrefix  string
+}
+
+type Service struct {
+	lock    sync.Mutex
+	l       *slog.Logger
+	running atomic.Bool
+	router  *gin.Engine
+	srv     *http.Server
+
+	checksMutex     sync.RWMutex
+	livenessChecks  map[string]Check
+	readinessChecks map[string]Check
+}
 
 type Check func() error
 
@@ -44,29 +59,15 @@ func New(address string, prefix string, logger *slog.Logger) *Service {
 	return &s
 }
 
-type Service struct {
-	lock    sync.Mutex
-	l       *slog.Logger
-	running atomic.Bool
-	router  *gin.Engine
-	srv     *http.Server
-
-	checksMutex     sync.RWMutex
-	livenessChecks  map[string]Check
-	readinessChecks map[string]Check
-}
-
 func (s *Service) Start(context.Context) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
 	if s.running.CompareAndSwap(false, true) {
-		go func() {
-			err := s.srv.ListenAndServe()
-			if err != nil && !errors.Is(err, http.ErrServerClosed) {
-				log.Fatalf("listen: %s\n", err)
-			}
-		}()
+		err := s.srv.ListenAndServe()
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+			return err
+		}
 	}
 
 	return nil
@@ -104,20 +105,6 @@ func (s *Service) live(c *gin.Context) {
 	s.handle(c, s.livenessChecks)
 }
 
-func (s *Service) collectChecks(checks map[string]Check, resultsOut map[string]string, statusOut *int) {
-	s.checksMutex.RLock()
-	defer s.checksMutex.RUnlock()
-
-	for name, check := range checks {
-		if err := check(); err != nil {
-			*statusOut = http.StatusServiceUnavailable
-			resultsOut[name] = err.Error()
-		} else {
-			resultsOut[name] = "OK"
-		}
-	}
-}
-
 func (s *Service) handle(c *gin.Context, checks ...map[string]Check) {
 	checkResults := make(map[string]string)
 	status := http.StatusOK
@@ -136,6 +123,20 @@ func (s *Service) handle(c *gin.Context, checks ...map[string]Check) {
 		c.JSON(status, gin.H{
 			"status": "OK",
 		})
+	}
+}
+
+func (s *Service) collectChecks(checks map[string]Check, resultsOut map[string]string, statusOut *int) {
+	s.checksMutex.RLock()
+	defer s.checksMutex.RUnlock()
+
+	for name, check := range checks {
+		if err := check(); err != nil {
+			*statusOut = http.StatusServiceUnavailable
+			resultsOut[name] = err.Error()
+		} else {
+			resultsOut[name] = "OK"
+		}
 	}
 }
 
