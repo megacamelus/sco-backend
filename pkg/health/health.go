@@ -19,9 +19,8 @@ const (
 )
 
 type Options struct {
-	Health        bool
-	HealthAddress string
-	HealthPrefix  string
+	Addr   string
+	Prefix string
 }
 
 type Service struct {
@@ -38,21 +37,21 @@ type Service struct {
 
 type Check func() error
 
-func New(address string, prefix string, logger *slog.Logger) *Service {
+func New(opts Options, logger *slog.Logger) *Service {
 	s := Service{}
 	s.l = logger.WithGroup("health")
 
 	s.router = gin.New()
 	s.router.Use(s.log)
-	s.router.GET(path.Join(prefix, "/health", "/ready"), s.ready)
-	s.router.GET(path.Join(prefix, "/health", "/live"), s.live)
+	s.router.GET(path.Join(opts.Prefix, "/health", "/ready"), s.ready)
+	s.router.GET(path.Join(opts.Prefix, "/health", "/live"), s.live)
 
 	s.srv = &http.Server{
 		ReadTimeout:       1 * time.Second,
 		WriteTimeout:      1 * time.Second,
 		IdleTimeout:       30 * time.Second,
 		ReadHeaderTimeout: 2 * time.Second,
-		Addr:              address,
+		Addr:              opts.Addr,
 		Handler:           s.router,
 	}
 

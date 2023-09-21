@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"testing"
 
-	. "github.com/onsi/gomega"
+	"github.com/hashicorp/go-cleanhttp"
 
-	"knative.dev/eventing/third_party/VENDOR-LICENSE/github.com/hashicorp/go-cleanhttp"
+	. "github.com/onsi/gomega"
 
 	"github.com/sco1237896/sco-backend/cmd/serve"
 )
