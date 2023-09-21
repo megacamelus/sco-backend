@@ -6,6 +6,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/sco1237896/sco-backend/pkg/logger"
+
 	"github.com/sco1237896/sco-backend/test/client"
 
 	camelv1alpha "github.com/apache/camel-k/pkg/apis/camel/v1alpha1"
@@ -14,7 +16,12 @@ import (
 )
 
 func TestGetPipes(t *testing.T) {
-	router := setupRouter(&client.TestClient{})
+	logger.Init(logger.Options{Development: true})
+
+	serverOpts := DefaultOptions()
+	server := New(*serverOpts, &client.TestClient{}, nil, logger.L)
+
+	router := server.svr.Handler
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequestWithContext(context.Background(), http.MethodGet, "/pipes", nil)
 	router.ServeHTTP(w, req)

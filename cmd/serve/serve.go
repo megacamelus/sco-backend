@@ -24,14 +24,12 @@ func NewServeCmd() *cobra.Command {
 		Development: false,
 	}
 
-	serverOpts := server.Options{
-		Addr: ":8080",
-	}
+	serverOpts := server.DefaultOptions()
 
+	healthEnabled := true
 	healthOpts := health.Options{
-		Health:        true,
-		HealthPrefix:  health.DefaultPrefix,
-		HealthAddress: health.DefaultAddress,
+		Prefix: health.DefaultPrefix,
+		Addr:   health.DefaultAddress,
 	}
 
 	cmd := cobra.Command{
@@ -48,8 +46,8 @@ func NewServeCmd() *cobra.Command {
 
 			logger.L.Info("Initializing Health Check server")
 			var h *health.Service
-			if healthOpts.Health {
-				h := health.New(healthOpts.HealthAddress, healthOpts.HealthPrefix, logger.L)
+			if healthEnabled {
+				h := health.New(healthOpts, logger.L)
 				go func() {
 					if err := h.Start(cmd.Context()); err != nil {
 						logger.L.ErrorContext(cmd.Context(), "Error in Health Check service", slog.Any("error", err))
@@ -65,8 +63,9 @@ func NewServeCmd() *cobra.Command {
 			}
 
 			logger.L.Info("Initializing main server")
+			s := server.New(*serverOpts, cl, h, logger.L)
 			go func() {
-				if err := server.Start(serverOpts, cl); err != nil {
+				if err := s.Start(cmd.Context()); err != nil {
 					logger.L.ErrorContext(cmd.Context(), "Error starting main server", slog.Any("error", err))
 					shutdown <- syscall.SIGTERM
 				}
@@ -75,6 +74,13 @@ func NewServeCmd() *cobra.Command {
 			logger.L.Info("Main thread running until shutdown signal")
 			<-shutdown
 			logger.L.Info("Main thread is shutting down")
+
+			logger.L.Info("Terminating main server")
+			if s != nil {
+				if err := s.Stop(cmd.Context()); err != nil {
+					logger.L.ErrorContext(cmd.Context(), "Error stopping the main server", slog.Any("error", err))
+				}
+			}
 
 			logger.L.Info("Terminating Health Check server")
 			if h != nil {
@@ -89,9 +95,9 @@ func NewServeCmd() *cobra.Command {
 
 	cmd.Flags().StringVar(&serverOpts.Addr, "bind-address", serverOpts.Addr, "The address the server binds to.")
 	cmd.Flags().BoolVar(&logOpts.Development, "dev", logOpts.Development, "Turn on/off development mode")
-	cmd.Flags().BoolVar(&healthOpts.Health, "health-check-enabled", healthOpts.Health, "health-check-enabled")
-	cmd.Flags().StringVar(&healthOpts.HealthPrefix, "health-check-prefix", healthOpts.HealthPrefix, "health-check-prefix")
-	cmd.Flags().StringVar(&healthOpts.HealthAddress, "health-check-address", healthOpts.HealthAddress, "health-check-address")
+	cmd.Flags().BoolVar(&healthEnabled, "health-check-enabled", healthEnabled, "health-check-enabled")
+	cmd.Flags().StringVar(&healthOpts.Prefix, "health-check-prefix", healthOpts.Prefix, "health-check-prefix")
+	cmd.Flags().StringVar(&healthOpts.Addr, "health-check-address", healthOpts.Addr, "health-check-address")
 
 	return &cmd
 }
