@@ -56,6 +56,9 @@ func New(opts Options, logger *slog.Logger) *Service {
 		Handler:           s.router,
 	}
 
+	s.readinessChecks = make(map[string]Check)
+	s.livenessChecks = make(map[string]Check)
+
 	return &s
 }
 
@@ -66,6 +69,7 @@ func (s *Service) Start(context.Context) error {
 	if s.running.CompareAndSwap(false, true) {
 		err := s.srv.ListenAndServe()
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+			s.running.CompareAndSwap(true, false)
 			return err
 		}
 	}
@@ -91,11 +95,25 @@ func (s *Service) AddLivenessCheck(name string, check Check) {
 	s.livenessChecks[name] = check
 }
 
+func (s *Service) RemoveLivenessCheck(name string) {
+	s.checksMutex.Lock()
+	defer s.checksMutex.Unlock()
+
+	delete(s.livenessChecks, name)
+}
+
 func (s *Service) AddReadinessCheck(name string, check Check) {
 	s.checksMutex.Lock()
 	defer s.checksMutex.Unlock()
 
 	s.readinessChecks[name] = check
+}
+
+func (s *Service) RemoveReadinessCheck(name string) {
+	s.checksMutex.Lock()
+	defer s.checksMutex.Unlock()
+
+	delete(s.readinessChecks, name)
 }
 
 func (s *Service) ready(c *gin.Context) {

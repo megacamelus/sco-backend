@@ -30,3 +30,7 @@ func (cl TestClient) ListPipes(_ context.Context) (*camelv1alpha.KameletBindingL
 	}
 	return list, nil
 }
+
+func (cl TestClient) Check(context.Context) error {
+	return nil
+}

@@ -9,6 +9,7 @@ require (
 	github.com/go-logr/logr v1.2.5-0.20230905055351-5dda6214b5c8
 	github.com/hashicorp/go-cleanhttp v0.5.2
 	github.com/onsi/gomega v1.27.10
+	github.com/pkg/errors v0.9.1
 	github.com/samber/slog-gin v1.1.0
 	github.com/spf13/cobra v1.7.0
 	github.com/stretchr/testify v1.8.4
@@ -75,7 +76,6 @@ require (
 	github.com/openshift/api v3.9.1-0.20190927182313-d4a64ec2cbd8+incompatible // indirect
 	github.com/operator-framework/api v0.13.0 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.8 // indirect
-	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.60.0 // indirect
 	github.com/prometheus/client_golang v1.16.0 // indirect
