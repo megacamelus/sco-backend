@@ -16,7 +16,7 @@ import (
 )
 
 func TestGetPipes(t *testing.T) {
-	logger.Init(logger.Options{Development: true})
+	logger.Init(true)
 
 	serverOpts := DefaultOptions()
 	server := New(*serverOpts, &client.TestClient{}, nil, logger.L)

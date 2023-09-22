@@ -9,18 +9,14 @@ import (
 	controllerlog "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-type Options struct {
-	Development bool
-}
-
 var L *slog.Logger
 
-func Init(opts Options) {
+func Init(development bool) {
 	ch := ContextHandler{}
 
-	if opts.Development {
+	if development {
 		ch.Handler = slog.Handler(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
-			AddSource:   false,
+			AddSource:   true,
 			Level:       slog.LevelDebug,
 			ReplaceAttr: nil,
 		}))
@@ -32,12 +28,9 @@ func Init(opts Options) {
 		}))
 	}
 
-	l := slog.New(ch)
-	slog.SetDefault(l)
-
-	L = l
-
-	controllerlog.SetLogger(slogr.NewLogr(ch.Handler))
+	L = slog.New(ch)
+	slog.SetDefault(L)
+	controllerlog.SetLogger(slogr.NewLogr(L.Handler()))
 }
 
 func With(args ...any) *slog.Logger {

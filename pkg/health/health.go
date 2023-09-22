@@ -43,6 +43,7 @@ func New(opts Options, logger *slog.Logger) *Service {
 
 	s.router = gin.New()
 	s.router.Use(s.log)
+	s.router.Use(gin.Recovery())
 	s.router.GET(path.Join(opts.Prefix, "/health", "/ready"), s.ready)
 	s.router.GET(path.Join(opts.Prefix, "/health", "/live"), s.live)
 
