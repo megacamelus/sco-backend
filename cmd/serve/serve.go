@@ -7,6 +7,7 @@ import (
 	"syscall"
 
 	"github.com/gin-gonic/gin"
+
 	"github.com/sco1237896/sco-backend/pkg/client"
 	"github.com/sco1237896/sco-backend/pkg/health"
 	"github.com/sco1237896/sco-backend/pkg/logger"
@@ -14,13 +15,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func init() {
-	gin.SetMode(gin.ReleaseMode)
+type Options struct {
+	Development bool
 }
 
 func NewServeCmd() *cobra.Command {
 
-	logOpts := logger.Options{
+	opts := Options{
 		Development: false,
 	}
 
@@ -36,7 +37,10 @@ func NewServeCmd() *cobra.Command {
 		Use:   "serve",
 		Short: "serve",
 		PreRunE: func(cmd *cobra.Command, args []string) error {
-			logger.Init(logOpts)
+			logger.Init(opts.Development)
+			if !opts.Development {
+				gin.SetMode(gin.ReleaseMode)
+			}
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -94,7 +98,7 @@ func NewServeCmd() *cobra.Command {
 	}
 
 	cmd.Flags().StringVar(&serverOpts.Addr, "bind-address", serverOpts.Addr, "The address the server binds to.")
-	cmd.Flags().BoolVar(&logOpts.Development, "dev", logOpts.Development, "Turn on/off development mode")
+	cmd.Flags().BoolVar(&opts.Development, "dev", opts.Development, "Turn on/off development mode")
 	cmd.Flags().BoolVar(&healthEnabled, "health-check-enabled", healthEnabled, "health-check-enabled")
 	cmd.Flags().StringVar(&healthOpts.Prefix, "health-check-prefix", healthOpts.Prefix, "health-check-prefix")
 	cmd.Flags().StringVar(&healthOpts.Addr, "health-check-address", healthOpts.Addr, "health-check-address")
