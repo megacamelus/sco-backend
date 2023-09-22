@@ -75,9 +75,23 @@ func New(opts Options, cl client.Interface, health *health.Service, l *slog.Logg
 func (s *Service) Start(c context.Context) error {
 	s.l.InfoContext(c, "starting server")
 
+	if s.health != nil {
+		s.health.AddReadinessCheck(s.serverName()+"1", func() error {
+			if s.running.Load() {
+				return nil
+
+			}
+			return errors.New(s.serverName() + " is not running")
+		})
+		s.health.AddReadinessCheck(s.serverName()+"2", func() error {
+			return s.cl.Check(c)
+		})
+	}
+
 	if s.running.CompareAndSwap(false, true) {
 		err := s.svr.ListenAndServe()
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+			s.running.CompareAndSwap(true, false)
 			return err
 		}
 	}
@@ -88,6 +102,10 @@ func (s *Service) Start(c context.Context) error {
 func (s *Service) Stop(ctx context.Context) error {
 	if s.running.CompareAndSwap(true, false) {
 		return s.svr.Shutdown(ctx)
+	}
+
+	if s.health != nil {
+		s.health.RemoveReadinessCheck(s.serverName())
 	}
 
 	return nil
@@ -101,4 +119,8 @@ func (s *Service) getPipes(c *gin.Context) {
 	}
 
 	c.IndentedJSON(http.StatusOK, list)
+}
+
+func (s *Service) serverName() string {
+	return "server at " + s.opts.Addr
 }

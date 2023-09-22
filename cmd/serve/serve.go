@@ -2,7 +2,6 @@ package serve
 
 import (
 	"log/slog"
-	"os"
 	"os/signal"
 	"syscall"
 
@@ -45,23 +44,21 @@ func NewServeCmd() *cobra.Command {
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			logger.L.Debug("Initializing shutdown channel")
-			shutdown := make(chan os.Signal, 1)
-			signal.Notify(shutdown, syscall.SIGINT, syscall.SIGTERM)
+			c, _ := signal.NotifyContext(cmd.Context(), syscall.SIGINT, syscall.SIGTERM)
 
-			logger.L.Info("Initializing Health Check server")
 			var h *health.Service
 			if healthEnabled {
-				h := health.New(healthOpts, logger.L)
+				logger.L.Info("Initializing Health Check server")
+				h = health.New(healthOpts, logger.L)
 				go func() {
-					if err := h.Start(cmd.Context()); err != nil {
-						logger.L.ErrorContext(cmd.Context(), "Error in Health Check service", slog.Any("error", err))
-						shutdown <- syscall.SIGTERM
+					if err := h.Start(c); err != nil {
+						logger.L.ErrorContext(c, "Error in Health Check service", slog.Any("error", err))
 					}
 				}()
 			}
 
 			logger.L.Info("Initializing SCO client")
-			cl, err := client.New(cmd.Context())
+			cl, err := client.GetInstance()
 			if err != nil {
 				return err
 			}
@@ -69,27 +66,26 @@ func NewServeCmd() *cobra.Command {
 			logger.L.Info("Initializing main server")
 			s := server.New(*serverOpts, cl, h, logger.L)
 			go func() {
-				if err := s.Start(cmd.Context()); err != nil {
-					logger.L.ErrorContext(cmd.Context(), "Error starting main server", slog.Any("error", err))
-					shutdown <- syscall.SIGTERM
+				if err := s.Start(c); err != nil {
+					logger.L.ErrorContext(c, "Error starting main server", slog.Any("error", err))
 				}
 			}()
 
 			logger.L.Info("Main thread running until shutdown signal")
-			<-shutdown
+			<-c.Done()
 			logger.L.Info("Main thread is shutting down")
 
 			logger.L.Info("Terminating main server")
 			if s != nil {
-				if err := s.Stop(cmd.Context()); err != nil {
-					logger.L.ErrorContext(cmd.Context(), "Error stopping the main server", slog.Any("error", err))
+				if err := s.Stop(c); err != nil {
+					logger.L.ErrorContext(c, "Error stopping the main server", slog.Any("error", err))
 				}
 			}
 
-			logger.L.Info("Terminating Health Check server")
 			if h != nil {
-				if err := h.Stop(cmd.Context()); err != nil {
-					logger.L.ErrorContext(cmd.Context(), "Error stopping the health service", slog.Any("error", err))
+				logger.L.Info("Terminating Health Check server")
+				if err := h.Stop(c); err != nil {
+					logger.L.ErrorContext(c, "Error stopping the health service", slog.Any("error", err))
 				}
 			}
 
