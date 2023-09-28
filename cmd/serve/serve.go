@@ -1,13 +1,14 @@
 package serve
 
 import (
+	"fmt"
 	"log/slog"
 	"os"
 	"os/signal"
-	"runtime"
 	"syscall"
 
 	"github.com/gin-gonic/gin"
+	"go.uber.org/automaxprocs/maxprocs"
 
 	"github.com/sco1237896/sco-backend/pkg/client"
 	"github.com/sco1237896/sco-backend/pkg/health"
@@ -43,7 +44,10 @@ func NewServeCmd() *cobra.Command {
 
 			// -------------------------------------------------------------------------
 			// GOMAXPROCS
-			logger.L.Info("startup", "GOMAXPROCS", runtime.GOMAXPROCS(0))
+			_, err := maxprocs.Set(maxprocs.Logger(func(f string, a ...interface{}) { logger.L.Info(fmt.Sprintf(f, a)) }))
+			if err != nil {
+				logger.L.ErrorContext(ctx, "failed to set GOMAXPROCS from cgroups")
+			}
 
 			// -------------------------------------------------------------------------
 			// Print config to stdout
