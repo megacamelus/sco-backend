@@ -102,16 +102,16 @@ func (s *Service) Start(c context.Context) error {
 	return nil
 }
 
-func (s *Service) Stop() error {
+func (s *Service) Stop(ctx context.Context) error {
 	if s.health != nil {
 		s.health.RemoveReadinessCheck(s.serverName())
 	}
 
 	if s.running.CompareAndSwap(true, false) {
-		ctx, cancel := context.WithTimeout(context.Background(), s.opts.ShutdownTimeout)
+		tctx, cancel := context.WithTimeout(ctx, s.opts.ShutdownTimeout)
 		defer cancel()
 
-		if err := s.svr.Shutdown(ctx); err != nil {
+		if err := s.svr.Shutdown(tctx); err != nil {
 			s.svr.Close()
 			return fmt.Errorf("could not stop server gracefully: %w", err)
 		}

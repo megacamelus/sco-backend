@@ -1,7 +1,6 @@
 package serve
 
 import (
-	"context"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -40,7 +39,7 @@ func NewServeCmd() *cobra.Command {
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			ctx := context.Background()
+			ctx := cmd.Context()
 
 			// -------------------------------------------------------------------------
 			// GOMAXPROCS
@@ -90,14 +89,14 @@ func NewServeCmd() *cobra.Command {
 
 			logger.L.Info("Terminating main server")
 			if s != nil {
-				if err := s.Stop(); err != nil {
+				if err := s.Stop(ctx); err != nil {
 					logger.L.ErrorContext(ctx, "error stopping the main server", slog.Any("error", err))
 				}
 			}
 
 			if h != nil {
 				logger.L.Info("Terminating Health Check server")
-				if err := h.Stop(); err != nil {
+				if err := h.Stop(ctx); err != nil {
 					logger.L.ErrorContext(ctx, "error stopping the health service", slog.Any("error", err))
 				}
 			}

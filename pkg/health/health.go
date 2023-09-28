@@ -82,12 +82,12 @@ func (s *Service) Start(context.Context) error {
 	return nil
 }
 
-func (s *Service) Stop() error {
+func (s *Service) Stop(ctx context.Context) error {
 	if s.running.CompareAndSwap(true, false) {
-		ctx, cancel := context.WithTimeout(context.Background(), s.opts.ShutdownTimeout)
+		tctx, cancel := context.WithTimeout(ctx, s.opts.ShutdownTimeout)
 		defer cancel()
 
-		if err := s.srv.Shutdown(ctx); err != nil {
+		if err := s.srv.Shutdown(tctx); err != nil {
 			s.srv.Close()
 			return fmt.Errorf("could not stop health server gracefully: %w", err)
 		}
