@@ -24,7 +24,6 @@ type Options struct {
 }
 
 type Service struct {
-	lock    sync.Mutex
 	l       *slog.Logger
 	running atomic.Bool
 	router  *gin.Engine
@@ -63,9 +62,6 @@ func New(opts Options, logger *slog.Logger) *Service {
 }
 
 func (s *Service) Start(context.Context) error {
-	s.lock.Lock()
-	defer s.lock.Unlock()
-
 	if s.running.CompareAndSwap(false, true) {
 		err := s.srv.ListenAndServe()
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {
@@ -78,9 +74,6 @@ func (s *Service) Start(context.Context) error {
 }
 
 func (s *Service) Stop(ctx context.Context) error {
-	s.lock.Lock()
-	defer s.lock.Unlock()
-
 	if s.running.CompareAndSwap(true, false) {
 		return s.srv.Shutdown(ctx)
 	}
