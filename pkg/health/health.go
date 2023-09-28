@@ -3,6 +3,7 @@ package health
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"path"
@@ -13,14 +14,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-const (
-	DefaultPrefix  = ""
-	DefaultAddress = ":8081"
-)
-
 type Options struct {
-	Addr   string
-	Prefix string
+	Enabled         bool
+	Addr            string
+	Prefix          string
+	ShutdownTimeout time.Duration
 }
 
 type Service struct {
@@ -28,6 +26,7 @@ type Service struct {
 	running atomic.Bool
 	router  *gin.Engine
 	srv     *http.Server
+	opts    Options
 
 	checksMutex     sync.RWMutex
 	livenessChecks  map[string]Check
@@ -36,8 +35,18 @@ type Service struct {
 
 type Check func() error
 
+func DefaultOptions() Options {
+	return Options{
+		Enabled:         false,
+		Addr:            ":8081",
+		Prefix:          "",
+		ShutdownTimeout: 3 * time.Second,
+	}
+}
 func New(opts Options, logger *slog.Logger) *Service {
-	s := Service{}
+	s := Service{
+		opts: opts,
+	}
 	s.l = logger.WithGroup("health")
 
 	s.router = gin.New()
@@ -73,9 +82,15 @@ func (s *Service) Start(context.Context) error {
 	return nil
 }
 
-func (s *Service) Stop(ctx context.Context) error {
+func (s *Service) Stop() error {
 	if s.running.CompareAndSwap(true, false) {
-		return s.srv.Shutdown(ctx)
+		ctx, cancel := context.WithTimeout(context.Background(), s.opts.ShutdownTimeout)
+		defer cancel()
+
+		if err := s.srv.Shutdown(ctx); err != nil {
+			s.srv.Close()
+			return fmt.Errorf("could not stop health server gracefully: %w", err)
+		}
 	}
 
 	return nil

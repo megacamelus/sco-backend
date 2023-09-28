@@ -19,7 +19,7 @@ func TestGetPipes(t *testing.T) {
 	logger.Init(true)
 
 	serverOpts := DefaultOptions()
-	server := New(*serverOpts, &client.TestClient{}, nil, logger.L)
+	server := New(serverOpts, &client.TestClient{}, nil, logger.L)
 
 	router := server.svr.Handler
 	w := httptest.NewRecorder()

@@ -1,8 +1,11 @@
 package serve
 
 import (
+	"context"
 	"log/slog"
+	"os"
 	"os/signal"
+	"runtime"
 	"syscall"
 
 	"github.com/gin-gonic/gin"
@@ -19,18 +22,12 @@ type Options struct {
 }
 
 func NewServeCmd() *cobra.Command {
-
 	opts := Options{
 		Development: false,
 	}
 
 	serverOpts := server.DefaultOptions()
-
-	healthEnabled := true
-	healthOpts := health.Options{
-		Prefix: health.DefaultPrefix,
-		Addr:   health.DefaultAddress,
-	}
+	healthOpts := health.DefaultOptions()
 
 	cmd := cobra.Command{
 		Use:   "serve",
@@ -43,49 +40,65 @@ func NewServeCmd() *cobra.Command {
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			logger.L.Debug("Initializing shutdown channel")
-			c, _ := signal.NotifyContext(cmd.Context(), syscall.SIGINT, syscall.SIGTERM)
+			ctx := context.Background()
 
+			// -------------------------------------------------------------------------
+			// GOMAXPROCS
+			logger.L.Info("startup", "GOMAXPROCS", runtime.GOMAXPROCS(0))
+
+			// -------------------------------------------------------------------------
+			// Print config to stdout
+			logger.L.Info("startup", "server config", serverOpts, "health config", healthOpts)
+
+			shutdown := make(chan os.Signal, 1)
+			signal.Notify(shutdown, syscall.SIGINT, syscall.SIGTERM)
+
+			// Initialize health service
 			var h *health.Service
-			if healthEnabled {
+			if healthOpts.Enabled {
 				logger.L.Info("Initializing Health Check server")
 				h = health.New(healthOpts, logger.L)
 				go func() {
-					if err := h.Start(c); err != nil {
-						logger.L.ErrorContext(c, "Error in Health Check service", slog.Any("error", err))
+					if err := h.Start(ctx); err != nil {
+						logger.L.ErrorContext(ctx, "error in Health Check service", slog.Any("error", err))
 					}
 				}()
 			}
 
+			// Initialize client
 			logger.L.Info("Initializing SCO client")
 			cl, err := client.GetInstance()
 			if err != nil {
 				return err
 			}
 
+			// Initialize backend service
 			logger.L.Info("Initializing main server")
-			s := server.New(*serverOpts, cl, h, logger.L)
+			s := server.New(serverOpts, cl, h, logger.L)
 			go func() {
-				if err := s.Start(c); err != nil {
-					logger.L.ErrorContext(c, "Error starting main server", slog.Any("error", err))
+				if err = s.Start(ctx); err != nil {
+					logger.L.ErrorContext(ctx, "error starting main server", slog.Any("error", err))
 				}
 			}()
 
 			logger.L.Info("Main thread running until shutdown signal")
-			<-c.Done()
+
+			// Start shutdown sequence
+			sig := <-shutdown
 			logger.L.Info("Main thread is shutting down")
+			defer logger.L.Info("Main thread shutdown", "status", "shutdown complete", "signal", sig)
 
 			logger.L.Info("Terminating main server")
 			if s != nil {
-				if err := s.Stop(c); err != nil {
-					logger.L.ErrorContext(c, "Error stopping the main server", slog.Any("error", err))
+				if err := s.Stop(); err != nil {
+					logger.L.ErrorContext(ctx, "error stopping the main server", slog.Any("error", err))
 				}
 			}
 
 			if h != nil {
 				logger.L.Info("Terminating Health Check server")
-				if err := h.Stop(c); err != nil {
-					logger.L.ErrorContext(c, "Error stopping the health service", slog.Any("error", err))
+				if err := h.Stop(); err != nil {
+					logger.L.ErrorContext(ctx, "error stopping the health service", slog.Any("error", err))
 				}
 			}
 
@@ -95,7 +108,7 @@ func NewServeCmd() *cobra.Command {
 
 	cmd.Flags().StringVar(&serverOpts.Addr, "bind-address", serverOpts.Addr, "The address the server binds to.")
 	cmd.Flags().BoolVar(&opts.Development, "dev", opts.Development, "Turn on/off development mode")
-	cmd.Flags().BoolVar(&healthEnabled, "health-check-enabled", healthEnabled, "health-check-enabled")
+	cmd.Flags().BoolVar(&healthOpts.Enabled, "health-check-enabled", healthOpts.Enabled, "health-check-enabled")
 	cmd.Flags().StringVar(&healthOpts.Prefix, "health-check-prefix", healthOpts.Prefix, "health-check-prefix")
 	cmd.Flags().StringVar(&healthOpts.Addr, "health-check-address", healthOpts.Addr, "health-check-address")
 
