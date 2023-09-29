@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"sync/atomic"
@@ -21,6 +22,7 @@ type Options struct {
 	WriteTimeout      time.Duration
 	IdleTimeout       time.Duration
 	ReadHeaderTimeout time.Duration
+	ShutdownTimeout   time.Duration
 }
 
 type Service struct {
@@ -32,13 +34,14 @@ type Service struct {
 	running atomic.Bool
 }
 
-func DefaultOptions() *Options {
-	return &Options{
+func DefaultOptions() Options {
+	return Options{
 		Addr:              ":8080",
 		ReadTimeout:       2 * time.Second,
 		WriteTimeout:      2 * time.Second,
 		IdleTimeout:       30 * time.Second,
 		ReadHeaderTimeout: 2 * time.Second,
+		ShutdownTimeout:   10 * time.Second,
 	}
 }
 
@@ -73,7 +76,7 @@ func New(opts Options, cl client.Interface, health *health.Service, l *slog.Logg
 }
 
 func (s *Service) Start(c context.Context) error {
-	s.l.InfoContext(c, "starting server")
+	s.l.InfoContext(c, "Starting server")
 
 	if s.health != nil {
 		s.health.AddReadinessCheck(s.serverName()+"1", func() error {
@@ -100,12 +103,18 @@ func (s *Service) Start(c context.Context) error {
 }
 
 func (s *Service) Stop(ctx context.Context) error {
-	if s.running.CompareAndSwap(true, false) {
-		return s.svr.Shutdown(ctx)
-	}
-
 	if s.health != nil {
 		s.health.RemoveReadinessCheck(s.serverName())
+	}
+
+	if s.running.CompareAndSwap(true, false) {
+		tctx, cancel := context.WithTimeout(ctx, s.opts.ShutdownTimeout)
+		defer cancel()
+
+		if err := s.svr.Shutdown(tctx); err != nil {
+			s.svr.Close()
+			return fmt.Errorf("could not stop server gracefully: %w", err)
+		}
 	}
 
 	return nil

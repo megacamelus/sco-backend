@@ -56,9 +56,11 @@ func TestMainHealthCheck(t *testing.T) {
 
 	// start first server
 	cmd := serve.NewServeCmd()
-	cmd.SetArgs([]string{"--bind-address", sharedAddr})
-	cmd.SetArgs([]string{"--health-check-enabled", "true"})
-	cmd.SetArgs([]string{"--health-check-address", "localhost:9092"})
+	cmd.SetArgs([]string{
+		"--health-check-enabled",
+		"--bind-address", sharedAddr,
+		"--health-check-address", "localhost:9092",
+	})
 	go func() {
 		err := cmd.ExecuteContext(c)
 		if err != nil {
@@ -68,9 +70,11 @@ func TestMainHealthCheck(t *testing.T) {
 
 	// tries to start second server in the same addr
 	cmd2 := serve.NewServeCmd()
-	cmd2.SetArgs([]string{"--bind-address", sharedAddr})
-	cmd2.SetArgs([]string{"--health-check-enabled", "true"})
-	cmd2.SetArgs([]string{"--health-check-address", "localhost:9093"})
+	cmd2.SetArgs([]string{
+		"--health-check-enabled",
+		"--bind-address", sharedAddr,
+		"--health-check-address", "localhost:9093",
+	})
 	go func() {
 		err := cmd2.ExecuteContext(c)
 		if err != nil {
