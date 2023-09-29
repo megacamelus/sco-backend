@@ -5,7 +5,6 @@ go 1.21
 require (
 	github.com/apache/camel-k v1.12.1
 	github.com/apache/camel-k/pkg/apis/camel v1.12.1
-	github.com/apex/log v1.9.0
 	github.com/gin-gonic/gin v1.9.1
 	github.com/go-logr/logr v1.2.5-0.20230905055351-5dda6214b5c8
 	github.com/hashicorp/go-cleanhttp v0.5.2
@@ -15,7 +14,7 @@ require (
 	github.com/spf13/cobra v1.7.0
 	github.com/stretchr/testify v1.8.4
 	go.opentelemetry.io/otel/trace v1.18.0
-	go.uber.org/automaxprocs v1.5.1
+	go.uber.org/automaxprocs v1.5.3
 	k8s.io/apimachinery v0.28.2
 	sigs.k8s.io/controller-runtime v0.16.2
 )
