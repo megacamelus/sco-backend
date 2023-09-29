@@ -3,9 +3,12 @@ package serve
 import (
 	"fmt"
 	"log/slog"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/sco1237896/sco-backend/pkg/debug"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/automaxprocs/maxprocs"
@@ -28,6 +31,7 @@ func NewServeCmd() *cobra.Command {
 
 	serverOpts := server.DefaultOptions()
 	healthOpts := health.DefaultOptions()
+	debugOpts := debug.Options{Addr: ":8083"}
 
 	cmd := cobra.Command{
 		Use:   "serve",
@@ -56,6 +60,18 @@ func NewServeCmd() *cobra.Command {
 			shutdown := make(chan os.Signal, 1)
 			signal.Notify(shutdown, syscall.SIGINT, syscall.SIGTERM)
 
+			// -------------------------------------------------------------------------
+			// Start Debug Service
+
+			go func() {
+				logger.L.InfoContext(ctx, "startup", "status", "debug v1 router started", "host", debugOpts.Addr)
+
+				if err := http.ListenAndServe(debugOpts.Addr, debug.Mux()); err != nil {
+					logger.L.ErrorContext(ctx, "shutdown", "status", "debug v1 router closed", "host", debugOpts.Addr, "msg", err)
+				}
+			}()
+
+			// -------------------------------------------------------------------------
 			// Initialize health service
 			var h *health.Service
 			if healthOpts.Enabled {
@@ -68,6 +84,7 @@ func NewServeCmd() *cobra.Command {
 				}()
 			}
 
+			// -------------------------------------------------------------------------
 			// Initialize client
 			logger.L.Info("Initializing SCO client")
 			cl, err := client.GetInstance()
@@ -75,6 +92,7 @@ func NewServeCmd() *cobra.Command {
 				return err
 			}
 
+			// -------------------------------------------------------------------------
 			// Initialize backend service
 			logger.L.Info("Initializing main server")
 			s := server.New(serverOpts, cl, h, logger.L)
@@ -86,6 +104,7 @@ func NewServeCmd() *cobra.Command {
 
 			logger.L.Info("Main thread running until shutdown signal")
 
+			// -------------------------------------------------------------------------
 			// Start shutdown sequence
 			sig := <-shutdown
 			logger.L.Info("Main thread is shutting down")
@@ -114,6 +133,7 @@ func NewServeCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&healthOpts.Enabled, "health-check-enabled", healthOpts.Enabled, "health-check-enabled")
 	cmd.Flags().StringVar(&healthOpts.Prefix, "health-check-prefix", healthOpts.Prefix, "health-check-prefix")
 	cmd.Flags().StringVar(&healthOpts.Addr, "health-check-address", healthOpts.Addr, "health-check-address")
+	cmd.Flags().StringVar(&debugOpts.Addr, "debug-bind-address", debugOpts.Addr, "debug-bind-address")
 
 	return &cmd
 }

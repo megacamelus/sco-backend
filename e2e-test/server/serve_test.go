@@ -10,7 +10,7 @@ import (
 
 	. "github.com/onsi/gomega"
 
-	"github.com/sco1237896/sco-backend/cmd/serve"
+	"github.com/sco1237896/sco-backend/app/services/backend/cmd/serve"
 )
 
 func TestServe(t *testing.T) {
