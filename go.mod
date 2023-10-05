@@ -6,6 +6,8 @@ require (
 	github.com/apache/camel-k v1.12.1
 	github.com/apache/camel-k/pkg/apis/camel v1.12.1
 	github.com/dimfeld/httptreemux/v5 v5.5.0
+	github.com/gin-contrib/expvar v0.0.1
+	github.com/gin-contrib/pprof v1.4.0
 	github.com/gin-gonic/gin v1.9.1
 	github.com/go-logr/logr v1.2.5-0.20230905055351-5dda6214b5c8
 	github.com/hashicorp/go-cleanhttp v0.5.2

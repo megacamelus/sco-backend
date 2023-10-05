@@ -79,8 +79,6 @@ func (exp *Exporter) Stop(shutdownTimeout time.Duration) {
 // =============================================================================
 
 func (exp *Exporter) handler(w http.ResponseWriter, r *http.Request) {
-	ctx := context.Background()
-
 	w.Header().Set("Content-Type", "text/plain; version=0.0.4")
 	w.WriteHeader(http.StatusOK)
 
@@ -93,7 +91,7 @@ func (exp *Exporter) handler(w http.ResponseWriter, r *http.Request) {
 
 	out(w, "", data)
 
-	exp.log.InfoContext(ctx, "prometheus", "metrics", fmt.Sprintf("expvar : (%d) : %s %s -> %s", http.StatusOK, r.Method, r.URL.Path, r.RemoteAddr))
+	exp.log.Info("prometheus", "metrics", fmt.Sprintf("expvar : (%d) : %s %s -> %s", http.StatusOK, r.Method, r.URL.Path, r.RemoteAddr))
 }
 
 // =============================================================================

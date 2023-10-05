@@ -7,8 +7,12 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
-	"github.com/sco1237896/sco-backend/pkg/debug"
+	sloggin "github.com/samber/slog-gin"
+
+	"github.com/gin-contrib/expvar"
+	"github.com/gin-contrib/pprof"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/automaxprocs/maxprocs"
@@ -24,6 +28,15 @@ type Options struct {
 	Development bool
 }
 
+type ServerOptions struct {
+	Addr              string
+	ReadTimeout       time.Duration
+	WriteTimeout      time.Duration
+	IdleTimeout       time.Duration
+	ReadHeaderTimeout time.Duration
+	ShutdownTimeout   time.Duration
+}
+
 func NewServeCmd() *cobra.Command {
 	opts := Options{
 		Development: false,
@@ -31,7 +44,14 @@ func NewServeCmd() *cobra.Command {
 
 	serverOpts := server.DefaultOptions()
 	healthOpts := health.DefaultOptions()
-	debugOpts := debug.Options{Addr: ":8083"}
+	debugOpts := ServerOptions{
+		Addr:              ":8082",
+		ReadTimeout:       2 * time.Second,
+		WriteTimeout:      2 * time.Second,
+		IdleTimeout:       30 * time.Second,
+		ReadHeaderTimeout: 2 * time.Second,
+		ShutdownTimeout:   10 * time.Second,
+	}
 
 	cmd := cobra.Command{
 		Use:   "serve",
@@ -62,11 +82,29 @@ func NewServeCmd() *cobra.Command {
 
 			// -------------------------------------------------------------------------
 			// Start Debug Service
+			router := gin.Default()
+			router.Use(gin.Recovery())
+			router.Use(sloggin.New(logger.L.WithGroup("debug")))
+
+			// register pprof middleware endpoints
+			pprof.Register(router)
+
+			// register expvar endpoints
+			router.GET("/debug/vars", expvar.Handler())
 
 			go func() {
 				logger.L.InfoContext(ctx, "startup", "status", "debug v1 router started", "host", debugOpts.Addr)
 
-				if err := http.ListenAndServe(debugOpts.Addr, debug.Mux()); err != nil {
+				srv := http.Server{
+					Addr:         debugOpts.Addr,
+					Handler:      router,
+					ReadTimeout:  debugOpts.ReadTimeout,
+					IdleTimeout:  debugOpts.IdleTimeout,
+					WriteTimeout: debugOpts.WriteTimeout,
+				}
+
+				err = srv.ListenAndServe()
+				if err != nil {
 					logger.L.ErrorContext(ctx, "shutdown", "status", "debug v1 router closed", "host", debugOpts.Addr, "msg", err)
 				}
 			}()

@@ -2,6 +2,7 @@
 package collector
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
@@ -46,7 +47,8 @@ func New(host string) (*Expvar, error) {
 
 // Collect captures metrics on the host configure to this endpoint.
 func (exp *Expvar) Collect() (map[string]any, error) {
-	req, err := http.NewRequest("GET", exp.host, nil)
+	cxt := context.Background()
+	req, err := http.NewRequestWithContext(cxt, http.MethodGet, exp.host, nil)
 	if err != nil {
 		return nil, err
 	}

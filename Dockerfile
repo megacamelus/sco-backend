@@ -11,7 +11,7 @@ COPY go.* ./
 RUN go mod download
 
 # Copy the go source
-COPY app/services/backend/cmd/ cmd/
+COPY cmd/ cmd/
 COPY pkg/ pkg/
 
 # Build

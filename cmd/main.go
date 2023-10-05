@@ -4,8 +4,8 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/sco1237896/sco-backend/app/services/backend/cmd/metrics"
-	"github.com/sco1237896/sco-backend/app/services/backend/cmd/serve"
+	"github.com/sco1237896/sco-backend/cmd/metrics"
+	"github.com/sco1237896/sco-backend/cmd/serve"
 
 	"github.com/spf13/cobra"
 )

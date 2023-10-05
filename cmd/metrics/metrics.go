@@ -1,14 +1,16 @@
 package metrics
 
 import (
-	"expvar"
 	"fmt"
 	"net/http"
-	"net/http/pprof"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/gin-contrib/expvar"
+	"github.com/gin-contrib/pprof"
+	sloggin "github.com/samber/slog-gin"
 
 	"go.uber.org/automaxprocs/maxprocs"
 
@@ -23,7 +25,11 @@ import (
 )
 
 type Web struct {
-	DebugHost string
+	DebugHost       string
+	ReadTimeout     time.Duration
+	WriteTimeout    time.Duration
+	IdleTimeout     time.Duration
+	ShutdownTimeout time.Duration
 }
 
 type Expvar struct {
@@ -68,7 +74,11 @@ func NewMetricsCmd() *cobra.Command {
 	cfg := configs{
 		Development: false,
 		Web: Web{
-			DebugHost: "0.0.0.0:9003",
+			DebugHost:       "0.0.0.0:9003",
+			ReadTimeout:     5 * time.Second,
+			WriteTimeout:    10 * time.Second,
+			IdleTimeout:     120 * time.Second,
+			ShutdownTimeout: 5 * time.Second,
 		},
 		Expvar: Expvar{
 			Host:            "0.0.0.0:9001",
@@ -127,19 +137,30 @@ func NewMetricsCmd() *cobra.Command {
 			// -------------------------------------------------------------------------
 			// Start Debug Service
 
-			log.InfoContext(ctx, "startup", "status", "debug router started", "host", cfg.Web.DebugHost)
+			router := gin.Default()
+			router.Use(gin.Recovery())
+			router.Use(sloggin.New(logger.L.WithGroup("debug")))
 
-			mux := http.NewServeMux()
-			mux.HandleFunc("/debug/pprof/", pprof.Index)
-			mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
-			mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
-			mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
-			mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
-			mux.Handle("/debug/vars", expvar.Handler())
+			// register pprof middleware endpoints
+			pprof.Register(router)
+
+			// register expvar endpoints
+			router.GET("/debug/vars", expvar.Handler())
 
 			go func() {
-				if err := http.ListenAndServe(cfg.Web.DebugHost, mux); err != nil {
-					log.ErrorContext(ctx, "shutdown", "status", "debug router closed", "host", cfg.Web.DebugHost, "msg", err)
+				logger.L.InfoContext(ctx, "startup", "status", "debug v1 router started", "host", cfg.Web.DebugHost)
+
+				srv := http.Server{
+					Addr:         cfg.Web.DebugHost,
+					Handler:      router,
+					ReadTimeout:  cfg.Web.ReadTimeout,
+					IdleTimeout:  cfg.Web.IdleTimeout,
+					WriteTimeout: cfg.Web.WriteTimeout,
+				}
+
+				err = srv.ListenAndServe()
+				if err != nil {
+					logger.L.ErrorContext(ctx, "shutdown", "status", "debug v1 router closed", "host", cfg.Web.DebugHost, "msg", err)
 				}
 			}()
 

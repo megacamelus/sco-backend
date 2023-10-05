@@ -75,7 +75,7 @@ func (exp *Expvar) Publish(data map[string]any) {
 }
 
 // handler is what consumers call to get the raw stats.
-func (exp *Expvar) handler(w http.ResponseWriter, r *http.Request, params map[string]string) {
+func (exp *Expvar) handler(w http.ResponseWriter, r *http.Request, _ map[string]string) {
 	ctx := context.Background()
 
 	w.Header().Set("Content-Type", "application/json")
