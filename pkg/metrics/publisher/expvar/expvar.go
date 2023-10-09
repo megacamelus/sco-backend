@@ -18,7 +18,7 @@ type Expvar struct {
 	log    *slog.Logger
 	server http.Server
 	data   map[string]any
-	mu     sync.Mutex
+	mu     sync.RWMutex
 }
 
 // New starts a service for consuming the raw expvar stats.
