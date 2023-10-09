@@ -8,7 +8,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/gin-contrib/expvar"
+	gexpvar "github.com/gin-contrib/expvar"
 	"github.com/gin-contrib/pprof"
 	sloggin "github.com/samber/slog-gin"
 
@@ -24,84 +24,87 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type Web struct {
-	DebugHost       string
-	ReadTimeout     time.Duration
-	WriteTimeout    time.Duration
-	IdleTimeout     time.Duration
-	ShutdownTimeout time.Duration
+const (
+	readTimeout     = 5 * time.Second
+	writeTimeout    = 10 * time.Second
+	idleTimeout     = 120 * time.Second
+	shutdownTimeout = 5 * time.Second
+)
+
+type srv struct {
+	host            string
+	readTimeout     time.Duration
+	writeTimeout    time.Duration
+	idleTimeout     time.Duration
+	shutdownTimeout time.Duration
 }
 
-type Expvar struct {
-	Host            string
-	Route           string
-	ReadTimeout     time.Duration
-	WriteTimeout    time.Duration
-	IdleTimeout     time.Duration
-	ShutdownTimeout time.Duration
+type prometheus struct {
+	srv
+	route string
 }
 
-type Prometheus struct {
-	Host            string
-	Route           string
-	ReadTimeout     time.Duration
-	WriteTimeout    time.Duration
-	IdleTimeout     time.Duration
-	ShutdownTimeout time.Duration
+type expvar struct {
+	srv
+	route string
 }
 
-type Collect struct {
-	From string
+type collect struct {
+	from string
 }
 
-type Publish struct {
-	To       string
-	Interval time.Duration
+type publish struct {
+	to       string
+	interval time.Duration
 }
 
 type configs struct {
-	Development bool
-	Web
-	Expvar
-	Prometheus
-	Collect
-	Publish
+	development bool
+	web         srv
+	expvar      expvar
+	prometheus  prometheus
+	collect     collect
+	publish     publish
 }
 
 var build = "develop"
 
 func NewMetricsCmd() *cobra.Command {
 	cfg := configs{
-		Development: false,
-		Web: Web{
-			DebugHost:       "0.0.0.0:9003",
-			ReadTimeout:     5 * time.Second,
-			WriteTimeout:    10 * time.Second,
-			IdleTimeout:     120 * time.Second,
-			ShutdownTimeout: 5 * time.Second,
+		development: false,
+		web: srv{
+			host:            "0.0.0.0:9003",
+			readTimeout:     readTimeout,
+			writeTimeout:    writeTimeout,
+			idleTimeout:     idleTimeout,
+			shutdownTimeout: shutdownTimeout,
 		},
-		Expvar: Expvar{
-			Host:            "0.0.0.0:9001",
-			Route:           "/metrics",
-			ReadTimeout:     5 * time.Second,
-			WriteTimeout:    10 * time.Second,
-			IdleTimeout:     120 * time.Second,
-			ShutdownTimeout: 5 * time.Second,
+		expvar: expvar{
+			route: "/metrics",
+			srv: srv{
+				host:            "0.0.0.0:9001",
+				readTimeout:     readTimeout,
+				writeTimeout:    writeTimeout,
+				idleTimeout:     idleTimeout,
+				shutdownTimeout: shutdownTimeout,
+			},
 		},
-		Prometheus: Prometheus{
-			Host:            "0.0.0.0:9002",
-			Route:           "/metrics",
-			ReadTimeout:     5 * time.Second,
-			WriteTimeout:    10 * time.Second,
-			IdleTimeout:     120 * time.Second,
-			ShutdownTimeout: 5 + time.Second,
+		prometheus: prometheus{
+			route: "/metrics",
+			srv: srv{
+				host:            "0.0.0.0:9002",
+				readTimeout:     readTimeout,
+				writeTimeout:    writeTimeout,
+				idleTimeout:     idleTimeout,
+				shutdownTimeout: shutdownTimeout,
+			},
 		},
-		Collect: Collect{
-			From: "http://localhost:8083/debug/vars",
+		collect: collect{
+			from: "http://localhost:8083/debug/vars",
 		},
-		Publish: Publish{
-			To:       "console",
-			Interval: 5 * time.Second,
+		publish: publish{
+			to:       "console",
+			interval: 5 * time.Second,
 		},
 	}
 
@@ -109,8 +112,8 @@ func NewMetricsCmd() *cobra.Command {
 		Use:   "metrics",
 		Short: "metrics",
 		PreRunE: func(cmd *cobra.Command, args []string) error {
-			logger.Init(cfg.Development)
-			if !cfg.Development {
+			logger.Init(cfg.development)
+			if !cfg.development {
 				gin.SetMode(gin.ReleaseMode)
 			}
 			return nil
@@ -145,48 +148,48 @@ func NewMetricsCmd() *cobra.Command {
 			pprof.Register(router)
 
 			// register expvar endpoints
-			router.GET("/debug/vars", expvar.Handler())
+			router.GET("/debug/vars", gexpvar.Handler())
 
 			go func() {
-				logger.L.InfoContext(ctx, "startup", "status", "debug v1 router started", "host", cfg.Web.DebugHost)
+				logger.L.InfoContext(ctx, "startup", "status", "debug v1 router started", "host", cfg.web.host)
 
 				srv := http.Server{
-					Addr:         cfg.Web.DebugHost,
+					Addr:         cfg.web.host,
 					Handler:      router,
-					ReadTimeout:  cfg.Web.ReadTimeout,
-					IdleTimeout:  cfg.Web.IdleTimeout,
-					WriteTimeout: cfg.Web.WriteTimeout,
+					ReadTimeout:  cfg.web.readTimeout,
+					IdleTimeout:  cfg.web.idleTimeout,
+					WriteTimeout: cfg.web.writeTimeout,
 				}
 
 				err = srv.ListenAndServe()
 				if err != nil {
-					logger.L.ErrorContext(ctx, "shutdown", "status", "debug v1 router closed", "host", cfg.Web.DebugHost, "msg", err)
+					logger.L.ErrorContext(ctx, "shutdown", "status", "debug v1 router closed", "host", cfg.web.host, "msg", err)
 				}
 			}()
 
 			// -------------------------------------------------------------------------
 			// Start Prometheus Service
 
-			prom := prometheussrv.New(log, cfg.Prometheus.Host, cfg.Prometheus.Route, cfg.Prometheus.ReadTimeout, cfg.Prometheus.WriteTimeout, cfg.Prometheus.IdleTimeout)
-			defer prom.Stop(cfg.Prometheus.ShutdownTimeout)
+			prom := prometheussrv.New(log, cfg.prometheus.host, cfg.prometheus.route, cfg.prometheus.readTimeout, cfg.prometheus.writeTimeout, cfg.prometheus.idleTimeout)
+			defer prom.Stop(cfg.prometheus.shutdownTimeout)
 
 			// -------------------------------------------------------------------------
 			// Start expvar Service
 
-			exp := expvarsrv.New(log, cfg.Expvar.Host, cfg.Expvar.Route, cfg.Expvar.ReadTimeout, cfg.Expvar.WriteTimeout, cfg.Expvar.IdleTimeout)
-			defer exp.Stop(cfg.Expvar.ShutdownTimeout)
+			exp := expvarsrv.New(log, cfg.expvar.host, cfg.expvar.route, cfg.expvar.readTimeout, cfg.expvar.writeTimeout, cfg.expvar.idleTimeout)
+			defer exp.Stop(cfg.expvar.shutdownTimeout)
 
 			// -------------------------------------------------------------------------
 			// Start collectors and publishers
 
-			collector, err := collector.New(cfg.Collect.From)
+			collector, err := collector.New(cfg.collect.from)
 			if err != nil {
 				return fmt.Errorf("starting collector: %w", err)
 			}
 
 			stdout := publisher.NewStdout(log)
 
-			publish, err := publisher.New(log, collector, cfg.Publish.Interval, prom.Publish, exp.Publish, stdout.Publish)
+			publish, err := publisher.New(log, collector, cfg.publish.interval, prom.Publish, exp.Publish, stdout.Publish)
 			if err != nil {
 				return fmt.Errorf("starting publisher: %w", err)
 			}
@@ -206,11 +209,11 @@ func NewMetricsCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().BoolVar(&cfg.Development, "dev", cfg.Development, "Turn on/off development mode")
-	cmd.Flags().StringVar(&cfg.Web.DebugHost, "debug-bind-address", cfg.Web.DebugHost, "Main service debug address")
-	cmd.Flags().StringVar(&cfg.Expvar.Host, "expvar-bind-address", cfg.Expvar.Host, "Expvar service bind address")
-	cmd.Flags().StringVar(&cfg.Prometheus.Host, "prometheus-bind-address", cfg.Prometheus.Host, "Prometheus service bind address")
-	cmd.Flags().StringVar(&cfg.Collect.From, "collect", cfg.Collect.From, "Main service address used to collect metrics from")
+	cmd.Flags().BoolVar(&cfg.development, "dev", cfg.development, "Turn on/off development mode")
+	cmd.Flags().StringVar(&cfg.web.host, "debug-bind-address", cfg.web.host, "Main service debug address")
+	cmd.Flags().StringVar(&cfg.expvar.host, "expvar-bind-address", cfg.expvar.host, "Expvar service bind address")
+	cmd.Flags().StringVar(&cfg.prometheus.host, "prometheus-bind-address", cfg.prometheus.host, "Prometheus service bind address")
+	cmd.Flags().StringVar(&cfg.collect.from, "collect", cfg.collect.from, "Main service address used to collect metrics from")
 
 	return cmd
 }
