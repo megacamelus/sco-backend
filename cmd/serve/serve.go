@@ -75,7 +75,7 @@ func NewServeCmd() *cobra.Command {
 
 			// -------------------------------------------------------------------------
 			// Print config to stdout
-			logger.L.Info("startup", "server config", serverOpts, "health config", healthOpts)
+			logger.L.Info("startup", "server config", serverOpts, "health config", healthOpts, "debug config", debugOpts)
 
 			shutdown := make(chan os.Signal, 1)
 			signal.Notify(shutdown, syscall.SIGINT, syscall.SIGTERM)
