@@ -2,16 +2,9 @@
 package publisher
 
 import (
-	"context"
 	"log/slog"
 	"sync"
 	"time"
-)
-
-// Set of possible publisher types.
-const (
-	TypeStdout  = "stdout"
-	TypeDatadog = "datadog"
 )
 
 // =============================================================================
@@ -56,7 +49,9 @@ func New(log *slog.Logger, collector Collector, interval time.Duration, publishe
 			p.timer.Reset(interval)
 			select {
 			case <-p.timer.C:
-				p.update()
+				if err := p.update(); err != nil {
+					log.Error("update", "status", "update data", "msg", err)
+				}
 			case <-p.shutdown:
 				return
 			}
@@ -73,14 +68,19 @@ func (p *Publish) Stop() {
 }
 
 // update pulls the metrics and publishes them to the specified system.
-func (p *Publish) update() {
+func (p *Publish) update() error {
 	data, err := p.collector.Collect()
 	if err != nil {
-		p.log.ErrorContext(context.Background(), "publish", "status", "collect data", "msg", err)
-		return
+		p.log.Error("publish", "status", "collect data", "msg", err)
+		return err
 	}
 
 	for _, pub := range p.publisher {
-		pub(data)
+		err = pub(data)
+		if err != nil {
+			p.log.Error("publish", "status", "collect data", "publisher", pub, "msg", err)
+		}
 	}
+
+	return nil
 }

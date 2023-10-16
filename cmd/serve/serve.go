@@ -38,14 +38,6 @@ func NewServeCmd() *cobra.Command {
 
 	serverOpts := server.DefaultOptions()
 	healthOpts := health.DefaultOptions()
-	debugOpts := ServerOptions{
-		Addr:              ":8082",
-		ReadTimeout:       2 * time.Second,
-		WriteTimeout:      2 * time.Second,
-		IdleTimeout:       30 * time.Second,
-		ReadHeaderTimeout: 2 * time.Second,
-		ShutdownTimeout:   10 * time.Second,
-	}
 
 	cmd := cobra.Command{
 		Use:   "serve",
@@ -69,7 +61,7 @@ func NewServeCmd() *cobra.Command {
 
 			// -------------------------------------------------------------------------
 			// Print config to stdout
-			logger.L.Info("startup", "server config", serverOpts, "health config", healthOpts, "debug config", debugOpts)
+			logger.L.Info("startup", "server config", serverOpts, "health config", healthOpts)
 
 			shutdown := make(chan os.Signal, 1)
 			signal.Notify(shutdown, syscall.SIGINT, syscall.SIGTERM)

@@ -181,12 +181,7 @@ func NewMetricsCmd() *cobra.Command {
 
 			g.Go(func() error {
 				log.InfoContext(ctx, "prometheus", "status", "API listening", "host", cfg.prometheus.host)
-
-				if err = prom.Server.ListenAndServe(); err != nil {
-					return err
-				}
-
-				return nil
+				return prom.Server.ListenAndServe()
 			})
 
 			// -------------------------------------------------------------------------
@@ -197,11 +192,7 @@ func NewMetricsCmd() *cobra.Command {
 
 			g.Go(func() error {
 				log.InfoContext(ctx, "expvar", "status", "API listening", "host", cfg.expvar.host)
-				if err = exp.Server.ListenAndServe(); err != nil {
-					return err
-				}
-
-				return nil
+				return exp.Server.ListenAndServe()
 			})
 
 			// -------------------------------------------------------------------------

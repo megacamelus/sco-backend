@@ -23,8 +23,7 @@ func TestServe(t *testing.T) {
 	cmd.SetArgs([]string{
 		"--health-check-enabled",
 		"--bind-address", "localhost:9090",
-		"--debug-bind-address", "localhost:9091",
-		"--health-check-address", "localhost:9092",
+		"--health-check-address", "localhost:9091",
 	})
 
 	go func() {
@@ -64,8 +63,7 @@ func TestMainHealthCheck(t *testing.T) {
 	cmd.SetArgs([]string{
 		"--health-check-enabled",
 		"--bind-address", sharedAddr,
-		"--debug-bind-address", "localhost:9011",
-		"--health-check-address", "localhost:9012",
+		"--health-check-address", "localhost:9011",
 	})
 	go func() {
 		err := cmd.ExecuteContext(c)
@@ -75,12 +73,12 @@ func TestMainHealthCheck(t *testing.T) {
 	}()
 
 	// tries to start second server in the same addr
+	time.Sleep(2 * time.Second)
 	cmd2 := serve.NewServeCmd()
 	cmd2.SetArgs([]string{
 		"--health-check-enabled",
 		"--bind-address", sharedAddr,
-		"--debug-bind-address", "localhost:9021",
-		"--health-check-address", "localhost:9022",
+		"--health-check-address", "localhost:9021",
 	})
 	go func() {
 		err := cmd2.ExecuteContext(c)
@@ -90,7 +88,7 @@ func TestMainHealthCheck(t *testing.T) {
 	}()
 
 	// check that first server is ready
-	req, err := http.NewRequestWithContext(c, http.MethodGet, "http://localhost:9012/health/ready", http.NoBody)
+	req, err := http.NewRequestWithContext(c, http.MethodGet, "http://localhost:9011/health/ready", http.NoBody)
 	if err != nil {
 		t.Error(err)
 	}
@@ -104,7 +102,7 @@ func TestMainHealthCheck(t *testing.T) {
 	g.Eventually(cleanhttp.DefaultClient().Do).WithArguments(reqDebug).Should(HaveHTTPStatus(http.StatusOK))
 
 	// check that the second server isn't ready
-	req, err = http.NewRequestWithContext(c, http.MethodGet, "http://localhost:9022/health/ready?full=true", http.NoBody)
+	req, err = http.NewRequestWithContext(c, http.MethodGet, "http://localhost:9021/health/ready?full=true", http.NoBody)
 	if err != nil {
 		t.Error(err)
 	}
