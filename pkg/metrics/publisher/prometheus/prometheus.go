@@ -10,7 +10,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/dimfeld/httptreemux/v5"
+	"github.com/gin-gonic/gin"
+	sloggin "github.com/samber/slog-gin"
+	"github.com/sco1237896/sco-backend/pkg/logger"
 )
 
 // Exporter implements the prometheus exporter support.
@@ -23,20 +25,24 @@ type Exporter struct {
 
 // New constructs an Exporter for use.
 func New(log *slog.Logger, host string, route string, readTimeout, writeTimeout time.Duration, idleTimeout time.Duration) *Exporter {
-	mux := httptreemux.NewContextMux()
+	router := gin.Default()
+	router.Use(gin.Recovery())
+	router.Use(sloggin.New(logger.L.WithGroup("prometheus")))
 
 	exp := Exporter{
 		log: log,
 		server: http.Server{
 			Addr:         host,
-			Handler:      mux,
+			Handler:      router,
 			ReadTimeout:  readTimeout,
 			WriteTimeout: writeTimeout,
 			IdleTimeout:  idleTimeout,
 		},
 	}
 
-	mux.Handle(http.MethodGet, route, exp.handler)
+	router.GET(route, func(c *gin.Context) {
+		exp.handler(c.Writer, c.Request)
+	})
 
 	go func() {
 		ctx := context.Background()

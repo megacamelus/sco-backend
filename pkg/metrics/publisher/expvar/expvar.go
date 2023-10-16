@@ -10,7 +10,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/dimfeld/httptreemux/v5"
+	"github.com/gin-gonic/gin"
+	sloggin "github.com/samber/slog-gin"
+	"github.com/sco1237896/sco-backend/pkg/logger"
 )
 
 // Expvar provide our basic publishing.
@@ -23,19 +25,24 @@ type Expvar struct {
 
 // New starts a service for consuming the raw expvar stats.
 func New(log *slog.Logger, host string, route string, readTimeout, writeTimeout time.Duration, idleTimeout time.Duration) *Expvar {
-	mux := httptreemux.New()
+	router := gin.Default()
+	router.Use(gin.Recovery())
+	router.Use(sloggin.New(logger.L.WithGroup("expvar")))
+
 	exp := Expvar{
 		log: log,
 		server: http.Server{
 			Addr:         host,
-			Handler:      mux,
+			Handler:      router,
 			ReadTimeout:  readTimeout,
 			WriteTimeout: writeTimeout,
 			IdleTimeout:  idleTimeout,
 		},
 	}
 
-	mux.Handle("GET", route, exp.handler)
+	router.GET(route, func(c *gin.Context) {
+		exp.handler(c.Writer, c.Request, nil)
+	})
 
 	go func() {
 		ctx := context.Background()
