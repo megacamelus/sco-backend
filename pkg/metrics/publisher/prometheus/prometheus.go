@@ -113,6 +113,8 @@ func deepCopyMap(source map[string]any) map[string]any {
 			if vm {
 				result[k] = 1.0
 			}
+		default:
+			// do nothing
 		}
 	}
 
