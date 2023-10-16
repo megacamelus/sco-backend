@@ -3,7 +3,6 @@ package publisher
 
 import (
 	"context"
-	"encoding/json"
 	"log/slog"
 	"sync"
 	"time"
@@ -27,7 +26,7 @@ type Collector interface {
 
 // Publisher defines a handler function that will be called
 // on each interval.
-type Publisher func(map[string]any)
+type Publisher func(map[string]any) error
 
 // Publish provides the ability to receive metrics
 // on an interval.
@@ -84,49 +83,4 @@ func (p *Publish) update() {
 	for _, pub := range p.publisher {
 		pub(data)
 	}
-}
-
-// =============================================================================
-
-// Stdout provide our basic publishing.
-type Stdout struct {
-	log *slog.Logger
-}
-
-// NewStdout initializes stdout for publishing metrics.
-func NewStdout(log *slog.Logger) *Stdout {
-	return &Stdout{log}
-}
-
-// Publish publishers for writing to stdout.
-func (s *Stdout) Publish(data map[string]any) {
-	ctx := context.Background()
-
-	rawJSON, err := json.Marshal(data)
-	if err != nil {
-		s.log.ErrorContext(ctx, "stdout", "status", "marshal data", "msg", err)
-		return
-	}
-
-	var d map[string]any
-	if err := json.Unmarshal(rawJSON, &d); err != nil {
-		s.log.ErrorContext(ctx, "stdout", "status", "unmarshal data", "msg", err)
-		return
-	}
-
-	// Add heap value into the data set.
-	memStats, ok := (d["memstats"]).(map[string]any)
-	if ok {
-		d["heap"] = memStats["Alloc"]
-	}
-
-	// Remove unnecessary keys.
-	delete(d, "memstats")
-	delete(d, "cmdline")
-
-	out, err := json.MarshalIndent(d, "", "    ")
-	if err != nil {
-		return
-	}
-	s.log.InfoContext(ctx, "stdout", "data", string(out))
 }

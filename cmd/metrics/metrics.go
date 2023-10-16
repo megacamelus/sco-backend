@@ -8,6 +8,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/sco1237896/sco-backend/pkg/metrics/publisher/stdout"
+
 	gexpvar "github.com/gin-contrib/expvar"
 	"github.com/gin-contrib/pprof"
 	sloggin "github.com/samber/slog-gin"
@@ -187,9 +189,9 @@ func NewMetricsCmd() *cobra.Command {
 				return fmt.Errorf("starting collector: %w", err)
 			}
 
-			stdout := publisher.NewStdout(log)
+			pstdout := stdout.NewStdout(log)
 
-			publish, err := publisher.New(log, collector, cfg.publish.interval, prom.Publish, exp.Publish, stdout.Publish)
+			publish, err := publisher.New(log, collector, cfg.publish.interval, prom.Publish, exp.Publish, pstdout.Publish)
 			if err != nil {
 				return fmt.Errorf("starting publisher: %w", err)
 			}

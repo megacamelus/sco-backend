@@ -58,11 +58,13 @@ func New(log *slog.Logger, host string, route string, readTimeout, writeTimeout 
 }
 
 // Publish stores a deep copy of the data for publishing.
-func (exp *Exporter) Publish(data map[string]any) {
+func (exp *Exporter) Publish(data map[string]any) error {
 	exp.mu.Lock()
 	defer exp.mu.Unlock()
 
 	exp.data = deepCopyMap(data)
+
+	return nil
 }
 
 // Stop turns off all the prometheus support.
