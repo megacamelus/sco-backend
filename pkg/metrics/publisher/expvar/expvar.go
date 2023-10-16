@@ -67,10 +67,9 @@ func (exp *Expvar) Stop(shutdownTimeout time.Duration) {
 // Publish is called by the publisher goroutine and saves the raw stats.
 func (exp *Expvar) Publish(data map[string]any) error {
 	exp.mu.Lock()
-	{
-		exp.data = maps.Clone(data)
-	}
-	exp.mu.Unlock()
+	defer exp.mu.Unlock()
+
+	exp.data = maps.Clone(data)
 
 	return nil
 }
