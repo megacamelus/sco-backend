@@ -19,7 +19,7 @@ import (
 // Expvar provide our basic publishing.
 type Expvar struct {
 	log    *slog.Logger
-	server http.Server
+	Server http.Server
 	data   map[string]any
 	mu     sync.RWMutex
 }
@@ -32,7 +32,7 @@ func New(log *slog.Logger, host string, route string, readTimeout, writeTimeout 
 
 	exp := Expvar{
 		log: log,
-		server: http.Server{
+		Server: http.Server{
 			Addr:         host,
 			Handler:      router,
 			ReadTimeout:  readTimeout,
@@ -45,15 +45,6 @@ func New(log *slog.Logger, host string, route string, readTimeout, writeTimeout 
 		exp.handler(c.Writer, c.Request, nil)
 	})
 
-	go func() {
-		ctx := context.Background()
-
-		log.InfoContext(ctx, "expvar", "status", "API listening", "host", host)
-		if err := exp.server.ListenAndServe(); err != nil {
-			log.ErrorContext(ctx, "expvar", "msg", err)
-		}
-	}()
-
 	return &exp
 }
 
@@ -65,10 +56,10 @@ func (exp *Expvar) Stop(shutdownTimeout time.Duration) {
 	exp.log.InfoContext(ctx, "expvar", "status", "start shutdown...")
 	defer exp.log.InfoContext(ctx, "expvar: Completed")
 
-	if err := exp.server.Shutdown(ctx); err != nil {
+	if err := exp.Server.Shutdown(ctx); err != nil {
 		exp.log.ErrorContext(ctx, "expvar", "status", "graceful shutdown did not complete", "msg", err, "shutdownTimeout", shutdownTimeout)
-		if err := exp.server.Close(); err != nil {
-			exp.log.ErrorContext(ctx, "expvar", "status", "could not stop http server", "msg", err)
+		if err := exp.Server.Close(); err != nil {
+			exp.log.ErrorContext(ctx, "expvar", "status", "could not stop http Server", "msg", err)
 		}
 	}
 }

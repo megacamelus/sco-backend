@@ -18,9 +18,9 @@ import (
 // Exporter implements the prometheus exporter support.
 type Exporter struct {
 	log    *slog.Logger
-	server http.Server
+	Server http.Server
 	data   map[string]any
-	mu     sync.Mutex
+	mu     sync.RWMutex
 }
 
 // New constructs an Exporter for use.
@@ -31,7 +31,7 @@ func New(log *slog.Logger, host string, route string, readTimeout, writeTimeout 
 
 	exp := Exporter{
 		log: log,
-		server: http.Server{
+		Server: http.Server{
 			Addr:         host,
 			Handler:      router,
 			ReadTimeout:  readTimeout,
@@ -43,16 +43,6 @@ func New(log *slog.Logger, host string, route string, readTimeout, writeTimeout 
 	router.GET(route, func(c *gin.Context) {
 		exp.handler(c.Writer, c.Request)
 	})
-
-	go func() {
-		ctx := context.Background()
-
-		log.InfoContext(ctx, "prometheus", "status", "API listening", "host", host)
-
-		if err := exp.server.ListenAndServe(); err != nil {
-			log.ErrorContext(ctx, "prometheus", "msg", err)
-		}
-	}()
 
 	return &exp
 }
@@ -75,10 +65,10 @@ func (exp *Exporter) Stop(shutdownTimeout time.Duration) {
 	exp.log.InfoContext(ctx, "prometheus", "status", "start shutdown...")
 	defer exp.log.InfoContext(ctx, "prometheus: Completed")
 
-	if err := exp.server.Shutdown(ctx); err != nil {
+	if err := exp.Server.Shutdown(ctx); err != nil {
 		exp.log.ErrorContext(ctx, "prometheus", "status", "graceful shutdown did not complete", "msg", err, "shutdownTimeout", shutdownTimeout)
 
-		if err := exp.server.Close(); err != nil {
+		if err := exp.Server.Close(); err != nil {
 			exp.log.ErrorContext(ctx, "prometheus", "status", "could not stop http server", "msg", err)
 		}
 	}

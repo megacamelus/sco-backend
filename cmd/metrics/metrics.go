@@ -8,6 +8,8 @@ import (
 	"syscall"
 	"time"
 
+	"golang.org/x/sync/errgroup"
+
 	"github.com/sco1237896/sco-backend/pkg/metrics/publisher/stdout"
 
 	gexpvar "github.com/gin-contrib/expvar"
@@ -121,7 +123,7 @@ func NewMetricsCmd() *cobra.Command {
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			ctx := cmd.Context()
+			g, ctx := errgroup.WithContext(cmd.Context())
 			var log = logger.L.WithGroup("METRICS")
 
 			// -------------------------------------------------------------------------
@@ -152,7 +154,7 @@ func NewMetricsCmd() *cobra.Command {
 			// register expvar endpoints
 			router.GET("/debug/vars", gexpvar.Handler())
 
-			go func() {
+			g.Go(func() error {
 				logger.L.InfoContext(ctx, "startup", "status", "debug v1 router started", "host", cfg.web.host)
 
 				srv := http.Server{
@@ -165,9 +167,11 @@ func NewMetricsCmd() *cobra.Command {
 
 				err = srv.ListenAndServe()
 				if err != nil {
-					logger.L.ErrorContext(ctx, "shutdown", "status", "debug v1 router closed", "host", cfg.web.host, "msg", err)
+					return err
 				}
-			}()
+
+				return nil
+			})
 
 			// -------------------------------------------------------------------------
 			// Start Prometheus Service
@@ -175,11 +179,30 @@ func NewMetricsCmd() *cobra.Command {
 			prom := prometheussrv.New(log, cfg.prometheus.host, cfg.prometheus.route, cfg.prometheus.readTimeout, cfg.prometheus.writeTimeout, cfg.prometheus.idleTimeout)
 			defer prom.Stop(cfg.prometheus.shutdownTimeout)
 
+			g.Go(func() error {
+				log.InfoContext(ctx, "prometheus", "status", "API listening", "host", cfg.prometheus.host)
+
+				if err = prom.Server.ListenAndServe(); err != nil {
+					return err
+				}
+
+				return nil
+			})
+
 			// -------------------------------------------------------------------------
 			// Start expvar Service
 
 			exp := expvarsrv.New(log, cfg.expvar.host, cfg.expvar.route, cfg.expvar.readTimeout, cfg.expvar.writeTimeout, cfg.expvar.idleTimeout)
 			defer exp.Stop(cfg.expvar.shutdownTimeout)
+
+			g.Go(func() error {
+				log.InfoContext(ctx, "expvar", "status", "API listening", "host", cfg.expvar.host)
+				if err = exp.Server.ListenAndServe(); err != nil {
+					return err
+				}
+
+				return nil
+			})
 
 			// -------------------------------------------------------------------------
 			// Start collectors and publishers
@@ -202,12 +225,16 @@ func NewMetricsCmd() *cobra.Command {
 
 			shutdown := make(chan os.Signal, 1)
 			signal.Notify(shutdown, syscall.SIGINT, syscall.SIGTERM)
-			<-shutdown
+			select {
+			case <-shutdown:
+				log.InfoContext(ctx, "shutdown", "status", "shutdown started")
+				defer log.InfoContext(ctx, "shutdown", "status", "shutdown complete")
 
-			log.InfoContext(ctx, "shutdown", "status", "shutdown started")
-			defer log.InfoContext(ctx, "shutdown", "status", "shutdown complete")
-
-			return nil
+				return nil
+			case <-ctx.Done():
+				log.ErrorContext(ctx, "metrics", "could not start http server", "msg", err)
+				return ctx.Err()
+			}
 		},
 	}
 
