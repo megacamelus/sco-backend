@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"maps"
 	"net/http"
 	"sync"
 	"time"
@@ -76,7 +77,7 @@ func (exp *Expvar) Stop(shutdownTimeout time.Duration) {
 func (exp *Expvar) Publish(data map[string]any) {
 	exp.mu.Lock()
 	{
-		exp.data = data
+		exp.data = maps.Clone(data)
 	}
 	exp.mu.Unlock()
 }
