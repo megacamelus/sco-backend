@@ -11,6 +11,9 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/gin-contrib/expvar"
+	"github.com/gin-contrib/pprof"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -43,6 +46,7 @@ func DefaultOptions() Options {
 		ShutdownTimeout: 3 * time.Second,
 	}
 }
+
 func New(opts Options, logger *slog.Logger) *Service {
 	s := Service{
 		opts: opts,
@@ -54,6 +58,12 @@ func New(opts Options, logger *slog.Logger) *Service {
 	s.router.Use(gin.Recovery())
 	s.router.GET(path.Join(opts.Prefix, "/health", "/ready"), s.ready)
 	s.router.GET(path.Join(opts.Prefix, "/health", "/live"), s.live)
+
+	// register pprof middleware endpoints
+	pprof.Register(s.router)
+
+	// register expvar endpoints
+	s.router.GET("/debug/vars", expvar.Handler())
 
 	s.srv = &http.Server{
 		ReadTimeout:       1 * time.Second,

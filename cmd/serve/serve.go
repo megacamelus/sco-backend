@@ -3,16 +3,10 @@ package serve
 import (
 	"fmt"
 	"log/slog"
-	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
-
-	sloggin "github.com/samber/slog-gin"
-
-	"github.com/gin-contrib/expvar"
-	"github.com/gin-contrib/pprof"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/automaxprocs/maxprocs"
@@ -81,35 +75,6 @@ func NewServeCmd() *cobra.Command {
 			signal.Notify(shutdown, syscall.SIGINT, syscall.SIGTERM)
 
 			// -------------------------------------------------------------------------
-			// Start Debug Service
-			router := gin.Default()
-			router.Use(gin.Recovery())
-			router.Use(sloggin.New(logger.L.WithGroup("debug")))
-
-			// register pprof middleware endpoints
-			pprof.Register(router)
-
-			// register expvar endpoints
-			router.GET("/debug/vars", expvar.Handler())
-
-			go func() {
-				logger.L.InfoContext(ctx, "startup", "status", "debug v1 router started", "host", debugOpts.Addr)
-
-				srv := http.Server{
-					Addr:         debugOpts.Addr,
-					Handler:      router,
-					ReadTimeout:  debugOpts.ReadTimeout,
-					IdleTimeout:  debugOpts.IdleTimeout,
-					WriteTimeout: debugOpts.WriteTimeout,
-				}
-
-				err = srv.ListenAndServe()
-				if err != nil {
-					logger.L.ErrorContext(ctx, "shutdown", "status", "debug v1 router closed", "host", debugOpts.Addr, "msg", err)
-				}
-			}()
-
-			// -------------------------------------------------------------------------
 			// Initialize health service
 			var h *health.Service
 			if healthOpts.Enabled {
@@ -171,7 +136,6 @@ func NewServeCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&healthOpts.Enabled, "health-check-enabled", healthOpts.Enabled, "health-check-enabled")
 	cmd.Flags().StringVar(&healthOpts.Prefix, "health-check-prefix", healthOpts.Prefix, "health-check-prefix")
 	cmd.Flags().StringVar(&healthOpts.Addr, "health-check-address", healthOpts.Addr, "health-check-address")
-	cmd.Flags().StringVar(&debugOpts.Addr, "debug-bind-address", debugOpts.Addr, "debug-bind-address")
 
 	return &cmd
 }
