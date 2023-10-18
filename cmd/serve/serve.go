@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/automaxprocs/maxprocs"
@@ -19,6 +20,15 @@ import (
 
 type Options struct {
 	Development bool
+}
+
+type ServerOptions struct {
+	Addr              string
+	ReadTimeout       time.Duration
+	WriteTimeout      time.Duration
+	IdleTimeout       time.Duration
+	ReadHeaderTimeout time.Duration
+	ShutdownTimeout   time.Duration
 }
 
 func NewServeCmd() *cobra.Command {
@@ -56,6 +66,7 @@ func NewServeCmd() *cobra.Command {
 			shutdown := make(chan os.Signal, 1)
 			signal.Notify(shutdown, syscall.SIGINT, syscall.SIGTERM)
 
+			// -------------------------------------------------------------------------
 			// Initialize health service
 			var h *health.Service
 			if healthOpts.Enabled {
@@ -68,6 +79,7 @@ func NewServeCmd() *cobra.Command {
 				}()
 			}
 
+			// -------------------------------------------------------------------------
 			// Initialize client
 			logger.L.Info("Initializing SCO client")
 			cl, err := client.GetInstance()
@@ -75,6 +87,7 @@ func NewServeCmd() *cobra.Command {
 				return err
 			}
 
+			// -------------------------------------------------------------------------
 			// Initialize backend service
 			logger.L.Info("Initializing main server")
 			s := server.New(serverOpts, cl, h, logger.L)
@@ -86,6 +99,7 @@ func NewServeCmd() *cobra.Command {
 
 			logger.L.Info("Main thread running until shutdown signal")
 
+			// -------------------------------------------------------------------------
 			// Start shutdown sequence
 			sig := <-shutdown
 			logger.L.Info("Main thread is shutting down")

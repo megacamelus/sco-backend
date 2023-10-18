@@ -4,6 +4,7 @@ import (
 	"log/slog"
 	"os"
 
+	"github.com/sco1237896/sco-backend/cmd/metrics"
 	"github.com/sco1237896/sco-backend/cmd/serve"
 
 	"github.com/spf13/cobra"
@@ -22,6 +23,7 @@ func main() {
 	}
 
 	rootCmd.AddCommand(serve.NewServeCmd())
+	rootCmd.AddCommand(metrics.NewMetricsCmd())
 
 	if err := rootCmd.Execute(); err != nil {
 		logger.Error("problem running command", err)

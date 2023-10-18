@@ -6,11 +6,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/sco1237896/sco-backend/cmd/serve"
+
 	"github.com/hashicorp/go-cleanhttp"
 
 	. "github.com/onsi/gomega"
-
-	"github.com/sco1237896/sco-backend/cmd/serve"
 )
 
 func TestServe(t *testing.T) {
@@ -20,7 +20,11 @@ func TestServe(t *testing.T) {
 	t.Cleanup(cancel)
 
 	cmd := serve.NewServeCmd()
-	cmd.SetArgs([]string{"--bind-address", "localhost:9090"})
+	cmd.SetArgs([]string{
+		"--health-check-enabled",
+		"--bind-address", "localhost:9090",
+		"--health-check-address", "localhost:9091",
+	})
 
 	go func() {
 		err := cmd.ExecuteContext(context)
@@ -49,7 +53,7 @@ func TestServe(t *testing.T) {
 func TestMainHealthCheck(t *testing.T) {
 	g := NewWithT(t)
 
-	sharedAddr := "localhost:9091"
+	sharedAddr := "localhost:9099"
 
 	c, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
@@ -59,7 +63,7 @@ func TestMainHealthCheck(t *testing.T) {
 	cmd.SetArgs([]string{
 		"--health-check-enabled",
 		"--bind-address", sharedAddr,
-		"--health-check-address", "localhost:9092",
+		"--health-check-address", "localhost:9011",
 	})
 	go func() {
 		err := cmd.ExecuteContext(c)
@@ -69,11 +73,12 @@ func TestMainHealthCheck(t *testing.T) {
 	}()
 
 	// tries to start second server in the same addr
+	time.Sleep(2 * time.Second)
 	cmd2 := serve.NewServeCmd()
 	cmd2.SetArgs([]string{
 		"--health-check-enabled",
 		"--bind-address", sharedAddr,
-		"--health-check-address", "localhost:9093",
+		"--health-check-address", "localhost:9021",
 	})
 	go func() {
 		err := cmd2.ExecuteContext(c)
@@ -83,14 +88,21 @@ func TestMainHealthCheck(t *testing.T) {
 	}()
 
 	// check that first server is ready
-	req, err := http.NewRequestWithContext(c, http.MethodGet, "http://localhost:9092/health/ready", http.NoBody)
+	req, err := http.NewRequestWithContext(c, http.MethodGet, "http://localhost:9011/health/ready", http.NoBody)
 	if err != nil {
 		t.Error(err)
 	}
 	g.Eventually(cleanhttp.DefaultClient().Do).WithArguments(req).Should(HaveHTTPStatus(http.StatusOK))
 
-	// check that first server is ready
-	req, err = http.NewRequestWithContext(c, http.MethodGet, "http://localhost:9093/health/ready?full=true", http.NoBody)
+	// check debug endpoint
+	reqDebug, err := http.NewRequestWithContext(c, http.MethodGet, "http://localhost:9011/debug/vars", http.NoBody)
+	if err != nil {
+		t.Error(err)
+	}
+	g.Eventually(cleanhttp.DefaultClient().Do).WithArguments(reqDebug).Should(HaveHTTPStatus(http.StatusOK))
+
+	// check that the second server isn't ready
+	req, err = http.NewRequestWithContext(c, http.MethodGet, "http://localhost:9021/health/ready?full=true", http.NoBody)
 	if err != nil {
 		t.Error(err)
 	}
