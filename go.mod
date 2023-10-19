@@ -17,7 +17,7 @@ require (
 	github.com/stretchr/testify v1.8.4
 	go.opentelemetry.io/otel/trace v1.19.0
 	go.uber.org/automaxprocs v1.5.3
-	golang.org/x/sync v0.3.0
+	golang.org/x/sync v0.4.0
 	k8s.io/apimachinery v0.28.2
 	sigs.k8s.io/controller-runtime v0.16.2
 )
