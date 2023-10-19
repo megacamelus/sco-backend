@@ -1,0 +1,175 @@
+apiVersion: "sco1237896.github.com/v1"
+kind: "ConnectorDefinition"
+metadata:
+  name: "aws_s3_sink_v1"
+spec:
+  definition:
+    apiVersion: "camel.apache.org/v1"
+    kind: "Pipe"
+    metadata:
+      annotations:
+        sco1237896.github.com/catalog.group: "aws"
+        sco1237896.github.com/catalog.id: "aws_s3"
+        sco1237896.github.com/connector.description: "Send data to an Amazon S3 bucket."
+        sco1237896.github.com/connector.group: "aws"
+        sco1237896.github.com/connector.id: "aws_s3_sink_v1"
+        sco1237896.github.com/connector.title: "Amazon S3 sink"
+        sco1237896.github.com/connector.version: "v1"
+        trait.camel.apache.org/container.request-cpu: "0.20"
+        trait.camel.apache.org/container.request-memory: "128M"
+        trait.camel.apache.org/deployment.progress-deadline-seconds: "30"
+        trait.camel.apache.org/container.image: "quay.io/sco1237896/connector-aws-s3:main-b0bc19971c883b500f8fbf96545c4dbefdaf8e9a"
+    spec:
+      errorHandler:
+        log: {}
+      sink:
+        ref:
+          apiVersion: "camel.apache.org/v1"
+          kind: "Kamelet"
+          name: "connector-aws-s3-sink"
+      source:
+        ref:
+          apiVersion: "camel.apache.org/v1"
+          kind: "Kamelet"
+          name: "connector-kafka-source"
+  resources:
+  - apiVersion: "camel.apache.org/v1alpha1"
+    kind: "Kamelet"
+    metadata:
+      name: "connector-kafka-source"
+    spec:
+      definition:
+        title: "Managed Kafka Source"
+        description: "Receive data from Managed Kafka topics."
+        required:
+        - "topic"
+        - "bootstrapServers"
+        type: "object"
+        properties:
+          topic:
+            title: "Topic Names"
+            description: "A comma-separated list of Kafka topic names."
+            type: "string"
+          bootstrapServers:
+            title: "Bootstrap Servers"
+            description: "Comma separated list of Kafka Broker URLs"
+            type: "string"
+          securityProtocol:
+            title: "Security Protocol"
+            description: "Protocol used to communicate with brokers. SASL_PLAINTEXT,\
+              \ PLAINTEXT, SASL_SSL and SSL are supported"
+            type: "string"
+          saslMechanism:
+            title: "SASL Mechanism"
+            description: "The Simple Authentication and Security Layer (SASL) Mechanism\
+              \ used."
+            type: "string"
+          user:
+            title: "Username"
+            description: "Username to authenticate to Kafka"
+            type: "string"
+            x-descriptors:
+            - "urn:camel:group:credentials"
+          password:
+            title: "Password"
+            description: "Password to authenticate to kafka"
+            type: "string"
+            format: "password"
+            x-descriptors:
+            - "urn:alm:descriptor:com.tectonic.ui:password"
+            - "urn:camel:group:credentials"
+  - apiVersion: "camel.apache.org/v1alpha1"
+    kind: "Kamelet"
+    metadata:
+      name: "connector-aws-s3-sink"
+    spec:
+      definition:
+        title: "AWS S3 Sink"
+        description: |-
+          Upload data to an Amazon S3 Bucket.
+
+          The basic authentication method for the S3 service is to specify an access key and a secret key. These parameters are optional because the Kamelet provides a default credentials provider.
+
+          If you use the default credentials provider, the S3 client loads the credentials through this provider and doesn't use the basic authentication method.
+
+          In the header, you can optionally set the `file` / `ce-partition` property to specify the name of the file to upload.
+
+          If you do not set the property in the header, the Kamelet uses the exchange ID for the file name.
+        required:
+        - "accessKey"
+        - "secretKey"
+        - "bucketNameOrArn"
+        - "region"
+        type: "object"
+        properties:
+          bucketNameOrArn:
+            title: "Bucket Name"
+            description: "The S3 Bucket name or Amazon Resource Name (ARN)."
+            type: "string"
+          accessKey:
+            title: "Access Key"
+            description: "The access key obtained from AWS."
+            type: "string"
+            format: "password"
+            x-descriptors:
+            - "urn:alm:descriptor:com.tectonic.ui:password"
+            - "urn:camel:group:credentials"
+          secretKey:
+            title: "Secret Key"
+            description: "The secret key obtained from AWS."
+            type: "string"
+            format: "password"
+            x-descriptors:
+            - "urn:alm:descriptor:com.tectonic.ui:password"
+            - "urn:camel:group:credentials"
+          region:
+            title: "AWS Region"
+            description: "The AWS region to access."
+            type: "string"
+            enum:
+            - "ap-south-1"
+            - "eu-south-1"
+            - "us-gov-east-1"
+            - "me-central-1"
+            - "ca-central-1"
+            - "eu-central-1"
+            - "us-iso-west-1"
+            - "us-west-1"
+            - "us-west-2"
+            - "af-south-1"
+            - "eu-north-1"
+            - "eu-west-3"
+            - "eu-west-2"
+            - "eu-west-1"
+            - "ap-northeast-3"
+            - "ap-northeast-2"
+            - "ap-northeast-1"
+            - "me-south-1"
+            - "sa-east-1"
+            - "ap-east-1"
+            - "cn-north-1"
+            - "us-gov-west-1"
+            - "ap-southeast-1"
+            - "ap-southeast-2"
+            - "us-iso-east-1"
+            - "ap-southeast-3"
+            - "us-east-1"
+            - "us-east-2"
+            - "cn-northwest-1"
+            - "us-isob-east-1"
+            - "aws-global"
+            - "aws-cn-global"
+            - "aws-us-gov-global"
+            - "aws-iso-global"
+            - "aws-iso-b-global"
+          autoCreateBucket:
+            title: "Autocreate Bucket"
+            description: "Specifies to automatically create the S3 bucket."
+            type: "boolean"
+            x-descriptors:
+            - "urn:alm:descriptor:com.tectonic.ui:checkbox"
+            default: false
+          keyName:
+            title: "Key Name"
+            description: "The key name for saving an element in the bucket."
+            type: "string"

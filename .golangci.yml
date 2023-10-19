@@ -67,3 +67,4 @@ linters:
     - varcheck
     - deadcode
     - ifshort
+    - depguard
