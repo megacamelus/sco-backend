@@ -3,9 +3,9 @@ package client
 import (
 	"context"
 
-	camelv1alpha "github.com/apache/camel-k/pkg/apis/camel/v1alpha1"
+	camelv1 "github.com/apache/camel-k/v2/pkg/apis/camel/v1"
 	"github.com/sco1237896/sco-backend/pkg/client"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type TestClient struct {
@@ -13,16 +13,16 @@ type TestClient struct {
 
 var _ client.Interface = &TestClient{}
 
-func (cl TestClient) ListPipes(_ context.Context) (*camelv1alpha.KameletBindingList, error) {
-	list := &camelv1alpha.KameletBindingList{
-		Items: []camelv1alpha.KameletBinding{
+func (cl TestClient) ListPipes(_ context.Context) (*camelv1.PipeList, error) {
+	list := &camelv1.PipeList{
+		Items: []camelv1.Pipe{
 			{
-				ObjectMeta: v1.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "mykb1",
 				},
 			},
 			{
-				ObjectMeta: v1.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "mykb2",
 				},
 			},
