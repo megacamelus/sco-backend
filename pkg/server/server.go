@@ -70,7 +70,7 @@ func New(opts Options, cl client.Interface, health *health.Service, l *slog.Logg
 		svr:    svr,
 	}
 
-	r.GET("/pipes", s.getPipes)
+	s.routes(r)
 
 	return s
 }

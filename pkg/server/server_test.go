@@ -23,7 +23,7 @@ func TestGetPipes(t *testing.T) {
 
 	router := server.svr.Handler
 	w := httptest.NewRecorder()
-	req, _ := http.NewRequestWithContext(context.Background(), http.MethodGet, "/pipes", nil)
+	req, _ := http.NewRequestWithContext(context.Background(), http.MethodGet, "/v1/pipes/", nil)
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, 200, w.Code)
