@@ -82,7 +82,7 @@ func NewServeCmd() *cobra.Command {
 			// -------------------------------------------------------------------------
 			// Initialize client
 			logger.L.Info("Initializing SCO client")
-			cl, err := client.GetInstance()
+			cl, err := client.New()
 			if err != nil {
 				return err
 			}

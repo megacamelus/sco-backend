@@ -10,7 +10,7 @@ import (
 
 	"github.com/sco1237896/sco-backend/test/client"
 
-	camelv1alpha "github.com/apache/camel-k/pkg/apis/camel/v1alpha1"
+	camelv1 "github.com/apache/camel-k/v2/pkg/apis/camel/v1"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/util/json"
 )
@@ -28,7 +28,7 @@ func TestGetPipes(t *testing.T) {
 
 	assert.Equal(t, 200, w.Code)
 
-	list := camelv1alpha.KameletBindingList{}
+	list := camelv1.PipeList{}
 	err := json.Unmarshal(
 		w.Body.Bytes(),
 		&list,
