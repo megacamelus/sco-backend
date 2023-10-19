@@ -33,7 +33,7 @@ func TestServe(t *testing.T) {
 		}
 	}()
 
-	req, err := http.NewRequestWithContext(context, http.MethodGet, "http://localhost:9090/pipes", http.NoBody)
+	req, err := http.NewRequestWithContext(context, http.MethodGet, "http://localhost:9090/v1/pipes/", http.NoBody)
 	if err != nil {
 		t.Error(err)
 	}
