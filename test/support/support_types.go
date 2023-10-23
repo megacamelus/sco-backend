@@ -15,7 +15,7 @@ type Test interface {
 	T() *testing.T
 	Ctx() context.Context
 
-	Serve([]string)
+	Serve(args []string)
 	HTTP() *HTTP
 
 	gomega.Gomega

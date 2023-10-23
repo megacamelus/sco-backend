@@ -7,6 +7,7 @@ import (
 
 	. "github.com/onsi/gomega"
 	"github.com/sco1237896/sco-backend/test/support"
+
 	. "github.com/sco1237896/sco-backend/test/support/matechers"
 )
 
