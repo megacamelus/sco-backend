@@ -1,0 +1,185 @@
+apiVersion: "sco1237896.github.com/v1"
+kind: "ConnectorDefinition"
+metadata:
+  name: "aws_ddb_stream_source_v1"
+spec:
+  definition:
+    apiVersion: "camel.apache.org/v1"
+    kind: "Pipe"
+    metadata:
+      annotations:
+        sco1237896.github.com/catalog.group: "aws"
+        sco1237896.github.com/catalog.id: "aws_ddb"
+        sco1237896.github.com/connector.description: "Receive data from Amazon DynamoDB\
+          \ Streams."
+        sco1237896.github.com/connector.group: "aws"
+        sco1237896.github.com/connector.id: "aws_ddb_stream_source_v1"
+        sco1237896.github.com/connector.title: "Amazon DynamoDB Stream source"
+        sco1237896.github.com/connector.version: "v1"
+        trait.camel.apache.org/container.request-cpu: "0.20"
+        trait.camel.apache.org/container.request-memory: "128M"
+        trait.camel.apache.org/deployment.progress-deadline-seconds: "30"
+        trait.camel.apache.org/container.image: "quay.io/sco1237896/connector-aws-ddb:main-b0bc19971c883b500f8fbf96545c4dbefdaf8e9a"
+    spec:
+      errorHandler:
+        log: {}
+      sink:
+        ref:
+          apiVersion: "camel.apache.org/v1"
+          kind: "Kamelet"
+          name: "connector-kafka-sink"
+      source:
+        ref:
+          apiVersion: "camel.apache.org/v1"
+          kind: "Kamelet"
+          name: "connector-aws-ddb-streams-source"
+  resources:
+  - apiVersion: "camel.apache.org/v1alpha1"
+    kind: "Kamelet"
+    metadata:
+      name: "connector-aws-ddb-streams-source"
+    spec:
+      definition:
+        title: "AWS DynamoDB Streams Source"
+        description: |-
+          Receive events from Amazon DynamoDB Streams.
+
+          The basic authentication method for the AWS DynamoDB Streams service is to specify an access key and a secret key. These parameters are optional because the Kamelet provides a default credentials provider.
+
+          If you use the default credentials provider, the DynamoDB Streams client loads the credentials through this provider and doesn't use the basic authentication method.
+        required:
+        - "accessKey"
+        - "secretKey"
+        - "table"
+        - "region"
+        type: "object"
+        properties:
+          table:
+            title: "Table"
+            description: "The name of the DynamoDB table."
+            type: "string"
+          accessKey:
+            title: "Access Key"
+            description: "The access key obtained from AWS."
+            type: "string"
+            format: "password"
+            x-descriptors:
+            - "urn:alm:descriptor:com.tectonic.ui:password"
+            - "urn:camel:group:credentials"
+          secretKey:
+            title: "Secret Key"
+            description: "The secret key obtained from AWS."
+            type: "string"
+            format: "password"
+            x-descriptors:
+            - "urn:alm:descriptor:com.tectonic.ui:password"
+            - "urn:camel:group:credentials"
+          region:
+            title: "AWS Region"
+            description: "The AWS region to access."
+            type: "string"
+            enum:
+            - "ap-south-1"
+            - "eu-south-1"
+            - "us-gov-east-1"
+            - "me-central-1"
+            - "ca-central-1"
+            - "eu-central-1"
+            - "us-iso-west-1"
+            - "us-west-1"
+            - "us-west-2"
+            - "af-south-1"
+            - "eu-north-1"
+            - "eu-west-3"
+            - "eu-west-2"
+            - "eu-west-1"
+            - "ap-northeast-3"
+            - "ap-northeast-2"
+            - "ap-northeast-1"
+            - "me-south-1"
+            - "sa-east-1"
+            - "ap-east-1"
+            - "cn-north-1"
+            - "us-gov-west-1"
+            - "ap-southeast-1"
+            - "ap-southeast-2"
+            - "us-iso-east-1"
+            - "ap-southeast-3"
+            - "us-east-1"
+            - "us-east-2"
+            - "cn-northwest-1"
+            - "us-isob-east-1"
+            - "aws-global"
+            - "aws-cn-global"
+            - "aws-us-gov-global"
+            - "aws-iso-global"
+            - "aws-iso-b-global"
+          streamIteratorType:
+            title: "Stream Iterator Type"
+            description: "Defines where in the DynamoDB stream to start getting records.\
+              \ There are two enums and the value can be one of FROM_LATEST and FROM_START.\
+              \ Note that using FROM_START can cause a significant delay before the\
+              \ stream has caught up to real-time."
+            type: "string"
+            default: "FROM_LATEST"
+          delay:
+            title: "Delay"
+            description: "The number of milliseconds before the next poll from the\
+              \ database."
+            type: "integer"
+            default: 500
+      types:
+        out:
+          mediaType: "application/json"
+  - apiVersion: "camel.apache.org/v1alpha1"
+    kind: "Kamelet"
+    metadata:
+      name: "connector-kafka-sink"
+    spec:
+      definition:
+        title: "Managed Kafka Sink"
+        description: |-
+          Send data to Managed Kafka topics.
+
+          Optionally, you can set the following properties in the header:
+
+          - `key`: as message key
+
+          - `partition-key`: as message partition key
+        required:
+        - "topic"
+        - "bootstrapServers"
+        type: "object"
+        properties:
+          topic:
+            title: "Topic Name"
+            description: "The name of the Kafka Topic to use."
+            type: "string"
+          bootstrapServers:
+            title: "Bootstrap Servers"
+            description: "Comma separated list of Kafka Broker URLs"
+            type: "string"
+          securityProtocol:
+            title: "Security Protocol"
+            description: "Protocol used to communicate with brokers. SASL_PLAINTEXT,\
+              \ PLAINTEXT, SASL_SSL and SSL are supported"
+            type: "string"
+          saslMechanism:
+            title: "SASL Mechanism"
+            description: "The Simple Authentication and Security Layer (SASL) Mechanism\
+              \ used."
+            type: "string"
+          user:
+            title: "Username"
+            description: "Username to authenticate to Kafka"
+            type: "string"
+            x-descriptors:
+            - "urn:camel:group:credentials"
+          password:
+            title: "Password"
+            description: "Password to authenticate to kafka"
+            type: "string"
+            format: "password"
+            x-descriptors:
+            - "urn:alm:descriptor:com.tectonic.ui:password"
+            - "urn:camel:group:credentials"

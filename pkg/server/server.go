@@ -9,6 +9,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/sco1237896/sco-backend/pkg/connectors"
+
 	"github.com/gin-gonic/gin"
 	sloggin "github.com/samber/slog-gin"
 	"github.com/sco1237896/sco-backend/pkg/client"
@@ -29,6 +31,7 @@ type Service struct {
 	opts    *Options
 	l       *slog.Logger
 	cl      client.Interface
+	catalog *connectors.Catalog
 	health  *health.Service
 	svr     *http.Server
 	running atomic.Bool
@@ -45,7 +48,7 @@ func DefaultOptions() Options {
 	}
 }
 
-func New(opts Options, cl client.Interface, health *health.Service, l *slog.Logger) *Service {
+func New(opts Options, cl client.Interface, catalog *connectors.Catalog, health *health.Service, l *slog.Logger) *Service {
 	l = l.WithGroup("server")
 
 	r := gin.New()
@@ -63,11 +66,12 @@ func New(opts Options, cl client.Interface, health *health.Service, l *slog.Logg
 	}
 
 	s := &Service{
-		l:      logger.With(slog.String("component", "server")),
-		cl:     cl,
-		health: health,
-		opts:   &opts,
-		svr:    svr,
+		l:       logger.With(slog.String("component", "server")),
+		cl:      cl,
+		catalog: catalog,
+		health:  health,
+		opts:    &opts,
+		svr:     svr,
 	}
 
 	s.routes(r)
@@ -118,16 +122,6 @@ func (s *Service) Stop(ctx context.Context) error {
 	}
 
 	return nil
-}
-
-func (s *Service) getPipes(c *gin.Context) {
-	list, err := s.cl.ListPipes(context.Background())
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.IndentedJSON(http.StatusOK, list)
 }
 
 func (s *Service) serverName() string {

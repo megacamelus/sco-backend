@@ -8,6 +8,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/sco1237896/sco-backend/pkg/connectors"
+
 	"github.com/gin-gonic/gin"
 	"go.uber.org/automaxprocs/maxprocs"
 
@@ -38,6 +40,7 @@ func NewServeCmd() *cobra.Command {
 
 	serverOpts := server.DefaultOptions()
 	healthOpts := health.DefaultOptions()
+	catalogOpts := connectors.DefaultCatalogOptions()
 
 	cmd := cobra.Command{
 		Use:   "serve",
@@ -80,6 +83,14 @@ func NewServeCmd() *cobra.Command {
 			}
 
 			// -------------------------------------------------------------------------
+			// Initialize catalog
+			logger.L.Info("Initializing catalog")
+			ct, err := connectors.NewCatalog(catalogOpts)
+			if err != nil {
+				return err
+			}
+
+			// -------------------------------------------------------------------------
 			// Initialize client
 			logger.L.Info("Initializing SCO client")
 			cl, err := client.New()
@@ -90,7 +101,7 @@ func NewServeCmd() *cobra.Command {
 			// -------------------------------------------------------------------------
 			// Initialize backend service
 			logger.L.Info("Initializing main server")
-			s := server.New(serverOpts, cl, h, logger.L)
+			s := server.New(serverOpts, cl, ct, h, logger.L)
 			go func() {
 				if err = s.Start(ctx); err != nil {
 					logger.L.ErrorContext(ctx, "error starting main server", slog.Any("error", err))
@@ -128,6 +139,7 @@ func NewServeCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&healthOpts.Enabled, "health-check-enabled", healthOpts.Enabled, "health-check-enabled")
 	cmd.Flags().StringVar(&healthOpts.Prefix, "health-check-prefix", healthOpts.Prefix, "health-check-prefix")
 	cmd.Flags().StringVar(&healthOpts.Addr, "health-check-address", healthOpts.Addr, "health-check-address")
+	cmd.Flags().StringSliceVar(&catalogOpts.Dirs, "connector-catalog-dirs", catalogOpts.Dirs, "connector-catalog-dirs")
 
 	return &cmd
 }

@@ -16,7 +16,7 @@ LOCALBIN := $(PROJECT_PATH)/bin
 
 ## Tool Versions
 KIND_VERSION ?= v0.20.0
-LINTER_VERSION ?= v1.52.2
+LINTER_VERSION ?= v1.55.0
 GOVULNCHECK_VERSION ?= latest
 
 ## Tool Binaries

@@ -1,6 +1,6 @@
 module github.com/sco1237896/sco-backend
 
-go 1.21.3
+go 1.21
 
 require (
 	github.com/apache/camel-k/v2 v2.1.0
@@ -9,11 +9,14 @@ require (
 	github.com/gin-gonic/gin v1.9.1
 	github.com/go-logr/logr v1.2.5-0.20230905055351-5dda6214b5c8
 	github.com/hashicorp/go-cleanhttp v0.5.2
+	github.com/itchyny/gojq v0.12.13
 	github.com/onsi/gomega v1.28.0
 	github.com/pkg/errors v0.9.1
+	github.com/rs/xid v1.5.0
 	github.com/samber/slog-gin v1.4.0
 	github.com/spf13/cobra v1.7.0
 	github.com/stretchr/testify v1.8.4
+	github.com/webstradev/gin-pagination v1.0.1
 	go.opentelemetry.io/otel/trace v1.19.0
 	go.uber.org/automaxprocs v1.5.3
 	golang.org/x/sync v0.4.0
@@ -62,6 +65,7 @@ require (
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
 	github.com/imdario/mergo v0.3.13 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
+	github.com/itchyny/timefmt-go v0.1.5 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/kelseyhightower/envconfig v1.4.0 // indirect
