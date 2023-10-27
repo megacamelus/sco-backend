@@ -7,7 +7,7 @@ require (
 	github.com/gin-contrib/expvar v0.0.1
 	github.com/gin-contrib/pprof v1.4.0
 	github.com/gin-gonic/gin v1.9.1
-	github.com/go-logr/logr v1.2.5-0.20230905055351-5dda6214b5c8
+	github.com/go-logr/logr v1.3.0
 	github.com/hashicorp/go-cleanhttp v0.5.2
 	github.com/onsi/gomega v1.28.0
 	github.com/pkg/errors v0.9.1
