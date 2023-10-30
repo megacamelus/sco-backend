@@ -365,8 +365,8 @@ github.com/rogpeppe/go-internal v1.8.0/go.mod h1:WmiCO8CzOY8rg0OYDC4/i/2WRWAB6po
 github.com/rogpeppe/go-internal v1.10.0 h1:TMyTOH3F/DB16zRVcYyreMH6GnZZrwQVAoYjRBZyWFQ=
 github.com/rogpeppe/go-internal v1.10.0/go.mod h1:UQnix2H7Ngw/k4C5ijL5+65zddjncjaFoBhdsK/akog=
 github.com/russross/blackfriday/v2 v2.1.0/go.mod h1:+Rmxgy9KzJVeS9/2gXHxylqXiyQDYRxCVz55jmeOWTM=
-github.com/samber/slog-gin v1.4.0 h1:aSWWEpI63DhE03n2GClgKsxQl1wr8VKikgLCHiFKXkU=
-github.com/samber/slog-gin v1.4.0/go.mod h1:E09LgkvhRB3Ae3VcekH6WlhPsT1i5O1/wWHcFAh3BhQ=
+github.com/samber/slog-gin v1.6.0 h1:N9PB+vZWLDeNHkAwvhFrJdzqik8ILmy0EhVHy9d+Ao4=
+github.com/samber/slog-gin v1.6.0/go.mod h1:3QtLUGJHqsS88fY/acFvqjzzaQaFeRu2xx3zGXx3dt0=
 github.com/sirupsen/logrus v1.2.0/go.mod h1:LxeOpSwHxABJmUn/MG1IvRgCAasNZTLOkJPxbbu5VWo=
 github.com/sirupsen/logrus v1.4.2/go.mod h1:tLMulIdttU9McNUspp0xgXVQah82FyeX6MwdIuYE2rE=
 github.com/sirupsen/logrus v1.6.0/go.mod h1:7uNnSEd1DgxDLC74fIahvMZmmYsHGZGEOFrfsX/uA88=
