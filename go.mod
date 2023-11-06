@@ -12,7 +12,7 @@ require (
 	github.com/onsi/gomega v1.28.0
 	github.com/pkg/errors v0.9.1
 	github.com/samber/slog-gin v1.4.0
-	github.com/spf13/cobra v1.7.0
+	github.com/spf13/cobra v1.8.0
 	github.com/stretchr/testify v1.8.4
 	go.opentelemetry.io/otel/trace v1.19.0
 	go.uber.org/automaxprocs v1.5.3
